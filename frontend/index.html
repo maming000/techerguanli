@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="教师信息管理系统 - 首页">
+    <title>教师信息管理系统</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-layout">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1><span class="icon">🎓</span> 教师管理</h1>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/" class="nav-item active">
+                <span class="nav-icon">📋</span> 教师列表
+            </a>
+            <a href="/upload" class="nav-item">
+                <span class="nav-icon">📤</span> 数据导入
+            </a>
+            <a href="/stats" class="nav-item">
+                <span class="nav-icon">📊</span> 统计分析
+            </a>
+        </nav>
+    </aside>
+
+    <!-- 主内容 -->
+    <main class="main-content">
+        <header class="page-header">
+            <h1 class="page-title">教师列表</h1>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="exportExcel()">📥 导出 Excel</button>
+                <button class="btn btn-outline" onclick="window.location.href='/upload'">📤 导入数据</button>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <!-- 统计卡片 -->
+            <div class="stats-grid" id="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-icon blue">👥</div>
+                    <div class="stat-info">
+                        <h3 id="total-count">-</h3>
+                        <p>教师总数</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">👨</div>
+                    <div class="stat-info">
+                        <h3 id="male-count">-</h3>
+                        <p>男教师</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">👩</div>
+                    <div class="stat-info">
+                        <h3 id="female-count">-</h3>
+                        <p>女教师</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon red">🎂</div>
+                    <div class="stat-info">
+                        <h3 id="young-count">-</h3>
+                        <p>30岁以下</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 快捷筛选 + 搜索 -->
+            <div class="filter-panel">
+                <div class="filter-row">
+                    <div class="search-box" style="flex: 1; min-width: 240px;">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" class="form-control" id="search-input"
+                               placeholder="搜索姓名 / 电话 / 身份证号..." style="padding-left: 40px;"
+                               onkeyup="if(event.key==='Enter') searchTeachers()">
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline filter-btn" data-filter="young" onclick="toggleFilter('young')">30岁以下</button>
+                        <button class="btn btn-outline filter-btn" data-filter="age-30" onclick="toggleFilter('age-30')">30-34岁</button>
+                        <button class="btn btn-outline filter-btn" data-filter="age-35" onclick="toggleFilter('age-35')">35-39岁</button>
+                        <button class="btn btn-outline filter-btn" data-filter="age-40" onclick="toggleFilter('age-40')">40-44岁</button>
+                        <button class="btn btn-outline filter-btn" data-filter="age-45" onclick="toggleFilter('age-45')">45-49岁</button>
+                        <button class="btn btn-outline filter-btn" data-filter="age-50" onclick="toggleFilter('age-50')">50-54岁</button>
+                        <button class="btn btn-outline filter-btn" data-filter="age-55" onclick="toggleFilter('age-55')">55-59岁</button>
+                        <button class="btn btn-outline filter-btn" data-filter="age-60" onclick="toggleFilter('age-60')">60-64岁</button>
+                        <button class="btn btn-outline filter-btn" data-filter="male" onclick="toggleFilter('male')">男教师</button>
+                        <button class="btn btn-outline filter-btn" data-filter="female" onclick="toggleFilter('female')">女教师</button>
+                        <button class="btn btn-outline filter-btn" data-filter="party" onclick="toggleFilter('party')">党员</button>
+                        <button class="btn btn-outline" onclick="resetFilters()">重置</button>
+                    </div>
+                </div>
+                <!-- 标签筛选 -->
+                <div class="filter-row mt-16" id="tag-filter-row" style="display:none;">
+                    <div style="width:100%;">
+                        <label class="form-label" style="margin-bottom:8px;">🏷️ 按标签筛选</label>
+                        <div class="btn-group" id="tag-filter-buttons"></div>
+                    </div>
+                </div>
+                <!-- 排序 + 高级筛选 -->
+                <div class="filter-row mt-16">
+                    <div class="form-group" style="min-width:150px;">
+                        <label class="form-label">排序方式</label>
+                        <select class="form-control" id="sort-by" onchange="searchTeachers()">
+                            <option value="">默认排序</option>
+                            <option value="name">按姓名</option>
+                            <option value="age">按年龄</option>
+                            <option value="education">按学历</option>
+                            <option value="gender">按性别</option>
+                            <option value="political_status">按政治面貌</option>
+                            <option value="subject">按学科</option>
+                            <option value="hire_date">按入职日期</option>
+                            <option value="created_at">按录入时间</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="min-width:120px;">
+                        <label class="form-label">排序方向</label>
+                        <select class="form-control" id="sort-order" onchange="searchTeachers()">
+                            <option value="asc">升序 ↑</option>
+                            <option value="desc">降序 ↓</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:1;"></div>
+                    <div class="form-group">
+                        <label class="form-label">&nbsp;</label>
+                        <a href="javascript:void(0)" onclick="document.getElementById('advanced-filters').style.display = document.getElementById('advanced-filters').style.display === 'none' ? 'flex' : 'none'" class="btn btn-outline btn-sm">
+                            ⚙️ 高级筛选
+                        </a>
+                    </div>
+                </div>
+                <!-- 高级筛选 -->
+                <div class="filter-row mt-16" id="advanced-filters" style="display:none;">
+                    <div class="form-group">
+                        <label class="form-label">性别</label>
+                        <select class="form-control" id="filter-gender" onchange="searchTeachers()">
+                            <option value="">全部</option>
+                            <option>男</option>
+                            <option>女</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">电话</label>
+                        <input type="text" class="form-control" id="filter-phone" placeholder="手机/座机/短号" onchange="searchTeachers()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">出生日期</label>
+                        <input type="date" class="form-control" id="filter-birth-date" onchange="searchTeachers()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">学历</label>
+                        <select class="form-control" id="filter-education" onchange="searchTeachers()">
+                            <option value="">全部</option>
+                            <option>博士</option>
+                            <option>硕士</option>
+                            <option>本科</option>
+                            <option>大专</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">职称</label>
+                        <input type="text" class="form-control" id="filter-title" placeholder="如: 高级教师" onchange="searchTeachers()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">原单位</label>
+                        <input type="text" class="form-control" id="filter-original-unit" placeholder="原单位名称" onchange="searchTeachers()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">参公时间</label>
+                        <input type="date" class="form-control" id="filter-public-service-time" onchange="searchTeachers()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">车牌号码</label>
+                        <input type="text" class="form-control" id="filter-car-plate" placeholder="如: 京A12345" onchange="searchTeachers()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">毕业院校</label>
+                        <input type="text" class="form-control" id="filter-graduate-school" placeholder="如: 北京师范大学" onchange="searchTeachers()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">民族</label>
+                        <input type="text" class="form-control" id="filter-ethnicity" placeholder="如: 汉族" onchange="searchTeachers()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">家庭住址</label>
+                        <input type="text" class="form-control" id="filter-address" placeholder="如: XX路XX号" onchange="searchTeachers()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">任教学科</label>
+                        <input type="text" class="form-control" id="filter-subject" placeholder="如: 数学" onchange="searchTeachers()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">入职时间</label>
+                        <input type="date" class="form-control" id="filter-hire-date" onchange="searchTeachers()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最小年龄</label>
+                        <input type="number" class="form-control" id="filter-min-age" placeholder="如: 25" onchange="searchTeachers()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最大年龄</label>
+                        <input type="number" class="form-control" id="filter-max-age" placeholder="如: 40" onchange="searchTeachers()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-primary" onclick="searchTeachers()">🔍 查询</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 教师表格 -->
+            <div class="card">
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
+                                </th>
+                                <th>ID</th>
+                                <th>姓名</th>
+                                <th>性别</th>
+                                <th>年龄</th>
+                                <th>手机</th>
+                                <th>学历</th>
+                                <th>政治面貌</th>
+                                <th>任教学科</th>
+                                <th>标签</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teacher-list">
+                            <tr><td colspan="11" class="loading"><div class="spinner"></div> 加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="pagination-area"></div>
+            </div>
+
+            <!-- 批量操作栏 -->
+            <div class="card mt-16 hidden" id="batch-bar" style="padding: 16px 24px;">
+                <div class="flex items-center gap-16" style="justify-content: space-between;">
+                    <span>已选择 <strong id="selected-count">0</strong> 名教师</span>
+                    <div class="btn-group">
+                        <button class="btn btn-outline btn-sm" onclick="showBatchTagModal()">批量加标签</button>
+                        <button class="btn btn-danger btn-sm" onclick="batchDelete()">批量删除</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+    // 状态管理
+    let currentPage = 1;
+    let activeFilters = {};
+    let selectedIds = new Set();
+    let activeTag = '';
+
+    // 页面初始化
+    document.addEventListener('DOMContentLoaded', () => {
+        loadTeachers();
+        loadQuickStats();
+        loadTagFilters();
+    });
+
+    // 加载教师列表
+    async function loadTeachers(page = 1) {
+        currentPage = page;
+        const params = new URLSearchParams();
+        params.set('page', page);
+        params.set('page_size', 20);
+
+        const keyword = document.getElementById('search-input').value.trim();
+        if (keyword) params.set('keyword', keyword);
+        if (activeFilters.gender) params.set('gender', activeFilters.gender);
+        if (activeFilters.political_status) params.set('political_status', activeFilters.political_status);
+        if (activeFilters.max_age) params.set('max_age', activeFilters.max_age);
+        if (activeFilters.min_age) params.set('min_age', activeFilters.min_age);
+
+        // 标签筛选
+        if (activeTag) params.set('tag', activeTag);
+
+        // 排序
+        const sortBy = document.getElementById('sort-by')?.value;
+        const sortOrder = document.getElementById('sort-order')?.value;
+        if (sortBy) {
+            params.set('sort_by', sortBy);
+            params.set('sort_order', sortOrder || 'asc');
+        }
+
+        const gender = document.getElementById('filter-gender')?.value;
+        if (gender && !activeFilters.gender) params.set('gender', gender);
+        const phone = document.getElementById('filter-phone')?.value;
+        if (phone) params.set('phone', phone);
+        const birthDate = document.getElementById('filter-birth-date')?.value;
+        if (birthDate) params.set('birth_date', birthDate);
+        const education = document.getElementById('filter-education')?.value;
+        if (education) params.set('education', education);
+        const title = document.getElementById('filter-title')?.value;
+        if (title) params.set('title', title);
+        const originalUnit = document.getElementById('filter-original-unit')?.value;
+        if (originalUnit) params.set('original_unit', originalUnit);
+        const publicServiceTime = document.getElementById('filter-public-service-time')?.value;
+        if (publicServiceTime) params.set('public_service_time', publicServiceTime);
+        const carPlate = document.getElementById('filter-car-plate')?.value;
+        if (carPlate) params.set('car_plate', carPlate);
+        const graduateSchool = document.getElementById('filter-graduate-school')?.value;
+        if (graduateSchool) params.set('graduate_school', graduateSchool);
+        const ethnicity = document.getElementById('filter-ethnicity')?.value;
+        if (ethnicity) params.set('ethnicity', ethnicity);
+        const address = document.getElementById('filter-address')?.value;
+        if (address) params.set('address', address);
+        const subject = document.getElementById('filter-subject')?.value;
+        if (subject) params.set('subject', subject);
+        const hireDate = document.getElementById('filter-hire-date')?.value;
+        if (hireDate) params.set('hire_date', hireDate);
+        const minAgeExport = document.getElementById('filter-min-age')?.value;
+        if (minAgeExport) params.set('min_age', minAgeExport);
+        const maxAgeExport = document.getElementById('filter-max-age')?.value;
+        if (maxAgeExport) params.set('max_age', maxAgeExport);
+        const minAge = document.getElementById('filter-min-age')?.value;
+        if (minAge) params.set('min_age', minAge);
+        const maxAge = document.getElementById('filter-max-age')?.value;
+        if (maxAge) params.set('max_age', maxAge);
+
+        try {
+            const result = await api(`/api/teachers/?${params.toString()}`);
+            renderTeacherList(result);
+        } catch (e) {
+            document.getElementById('teacher-list').innerHTML =
+                `<tr><td colspan="10" class="text-center text-muted" style="padding:40px;">加载失败</td></tr>`;
+        }
+    }
+
+    // 渲染教师列表
+    function renderTeacherList(result) {
+        const tbody = document.getElementById('teacher-list');
+        const pag = document.getElementById('pagination-area');
+
+        if (result.data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="11">
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <h3>暂无教师数据</h3>
+                    <p>请先导入教师数据文件</p>
+                    <a href="/upload" class="btn btn-primary mt-16">📤 去导入</a>
+                </div>
+            </td></tr>`;
+            pag.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+        for (const t of result.data) {
+            const checked = selectedIds.has(t.id) ? 'checked' : '';
+            html += `<tr>
+                <td><input type="checkbox" value="${t.id}" ${checked} onchange="toggleSelect(${t.id})"></td>
+                <td style="color:var(--text-muted); font-weight:600;">${t.id}</td>
+                <td><a href="/detail?id=${t.id}" style="font-weight:600;">${t.name || '-'}</a></td>
+                <td>${t.gender || '-'}</td>
+                <td>${t.age || '-'}</td>
+                <td>${t.mobile || t.phone || '-'}</td>
+                <td>${t.education || '-'}</td>
+                <td>${t.political_status || '-'}</td>
+                <td>${t.subject || '-'}</td>
+                <td>${renderTags(t.tags)}</td>
+                <td>
+                    <a href="/detail?id=${t.id}" class="btn btn-outline btn-sm">查看</a>
+                </td>
+            </tr>`;
+        }
+        tbody.innerHTML = html;
+
+        // 分页
+        pag.innerHTML = renderPagination(result.page, result.total_pages, result.total, 'loadTeachers');
+    }
+
+    // 加载快捷统计
+    async function loadQuickStats() {
+        try {
+            const stats = await api('/api/stats/');
+            document.getElementById('total-count').textContent = stats.total_teachers;
+            document.getElementById('male-count').textContent = stats.gender_stats['男'] || 0;
+            document.getElementById('female-count').textContent = stats.gender_stats['女'] || 0;
+            // 计算30岁以下
+            let young = 0;
+            for (const [range, count] of Object.entries(stats.age_stats)) {
+                if (range.includes('25岁以下') || range.includes('25-30')) young += count;
+            }
+            document.getElementById('young-count').textContent = young;
+        } catch (e) {}
+    }
+
+    // 搜索
+    function searchTeachers() {
+        loadTeachers(1);
+    }
+
+    // 快捷筛选
+    function toggleFilter(type) {
+        const btn = document.querySelector(`.filter-btn[data-filter="${type}"]`);
+        const isActive = btn.classList.contains('active');
+
+        // 清除所有快捷筛选
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        activeFilters = {};
+
+        if (!isActive) {
+            btn.classList.add('active');
+            switch (type) {
+                case 'young': activeFilters.max_age = 30; break;
+                case 'male': activeFilters.gender = '男'; break;
+                case 'female': activeFilters.gender = '女'; break;
+                case 'party': activeFilters.political_status = '中共党员'; break;
+                default:
+                    if (type.startsWith('age-')) {
+                        const base = parseInt(type.split('-')[1], 10);
+                        if (!isNaN(base)) {
+                            activeFilters.min_age = base;
+                            activeFilters.max_age = base + 4;
+                        }
+                    }
+                    break;
+            }
+        }
+        loadTeachers(1);
+    }
+
+    function resetFilters() {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tag-filter-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('search-input').value = '';
+        document.getElementById('filter-gender').value = '';
+        document.getElementById('filter-phone').value = '';
+        document.getElementById('filter-birth-date').value = '';
+        document.getElementById('filter-education').value = '';
+        document.getElementById('filter-title').value = '';
+        document.getElementById('filter-original-unit').value = '';
+        document.getElementById('filter-public-service-time').value = '';
+        document.getElementById('filter-car-plate').value = '';
+        document.getElementById('filter-graduate-school').value = '';
+        document.getElementById('filter-ethnicity').value = '';
+        document.getElementById('filter-address').value = '';
+        document.getElementById('filter-subject').value = '';
+        document.getElementById('filter-hire-date').value = '';
+        document.getElementById('filter-min-age').value = '';
+        document.getElementById('filter-max-age').value = '';
+        document.getElementById('sort-by').value = '';
+        document.getElementById('sort-order').value = 'asc';
+        activeFilters = {};
+        activeTag = '';
+        loadTeachers(1);
+    }
+
+    // 加载标签筛选按钮
+    async function loadTagFilters() {
+        try {
+            const tagStats = await api('/api/stats/tags');
+            const container = document.getElementById('tag-filter-buttons');
+            const row = document.getElementById('tag-filter-row');
+
+            if (!tagStats || Object.keys(tagStats).length === 0) {
+                row.style.display = 'none';
+                return;
+            }
+
+            row.style.display = 'flex';
+            const colors = ['primary', 'success', 'warning', 'danger'];
+            let html = '';
+            let i = 0;
+            for (const [tag, count] of Object.entries(tagStats)) {
+                const color = colors[i % colors.length];
+                html += `<button class="btn btn-outline tag-filter-btn" data-tag="${tag}" onclick="toggleTagFilter('${tag}')" style="border-color: var(--${color}); color: var(--${color});">
+                    🏷️ ${tag} <span class="badge" style="background: var(--${color}); margin-left: 4px;">${count}</span>
+                </button>`;
+                i++;
+            }
+            container.innerHTML = html;
+        } catch (e) {}
+    }
+
+    // 标签筛选切换
+    function toggleTagFilter(tag) {
+        const btn = document.querySelector(`.tag-filter-btn[data-tag="${tag}"]`);
+        const isActive = btn.classList.contains('active');
+
+        // 清除所有标签筛选的高亮
+        document.querySelectorAll('.tag-filter-btn').forEach(b => b.classList.remove('active'));
+
+        if (!isActive) {
+            btn.classList.add('active');
+            activeTag = tag;
+        } else {
+            activeTag = '';
+        }
+        loadTeachers(1);
+    }
+
+    // 导出
+    async function exportExcel() {
+        const params = new URLSearchParams();
+        const keyword = document.getElementById('search-input').value.trim();
+        if (keyword) params.set('keyword', keyword);
+        if (activeFilters.gender) params.set('gender', activeFilters.gender);
+        if (activeFilters.political_status) params.set('political_status', activeFilters.political_status);
+        if (activeFilters.min_age) params.set('min_age', activeFilters.min_age);
+        if (activeFilters.max_age) params.set('max_age', activeFilters.max_age);
+        if (activeTag) params.set('tag', activeTag);
+        const gender = document.getElementById('filter-gender')?.value;
+        if (gender && !activeFilters.gender) params.set('gender', gender);
+        const phone = document.getElementById('filter-phone')?.value;
+        if (phone) params.set('phone', phone);
+        const birthDate = document.getElementById('filter-birth-date')?.value;
+        if (birthDate) params.set('birth_date', birthDate);
+        const education = document.getElementById('filter-education')?.value;
+        if (education) params.set('education', education);
+        const title = document.getElementById('filter-title')?.value;
+        if (title) params.set('title', title);
+        const originalUnit = document.getElementById('filter-original-unit')?.value;
+        if (originalUnit) params.set('original_unit', originalUnit);
+        const publicServiceTime = document.getElementById('filter-public-service-time')?.value;
+        if (publicServiceTime) params.set('public_service_time', publicServiceTime);
+        const carPlate = document.getElementById('filter-car-plate')?.value;
+        if (carPlate) params.set('car_plate', carPlate);
+        const graduateSchool = document.getElementById('filter-graduate-school')?.value;
+        if (graduateSchool) params.set('graduate_school', graduateSchool);
+        const ethnicity = document.getElementById('filter-ethnicity')?.value;
+        if (ethnicity) params.set('ethnicity', ethnicity);
+        const address = document.getElementById('filter-address')?.value;
+        if (address) params.set('address', address);
+        const subject = document.getElementById('filter-subject')?.value;
+        if (subject) params.set('subject', subject);
+        const hireDate = document.getElementById('filter-hire-date')?.value;
+        if (hireDate) params.set('hire_date', hireDate);
+
+        try {
+            const resp = await fetch(`/api/export/excel?${params.toString()}`);
+            if (!resp.ok) throw new Error('导出失败');
+            const blob = await resp.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `教师数据_${new Date().toISOString().slice(0,10)}.xlsx`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('导出成功', 'success');
+        } catch (e) {
+            showToast('导出失败: ' + e.message, 'error');
+        }
+    }
+
+    // 批量选择
+    function toggleSelect(id) {
+        if (selectedIds.has(id)) selectedIds.delete(id);
+        else selectedIds.add(id);
+        updateBatchBar();
+    }
+
+    function toggleSelectAll() {
+        const checked = document.getElementById('select-all').checked;
+        document.querySelectorAll('#teacher-list input[type="checkbox"]').forEach(cb => {
+            const id = parseInt(cb.value);
+            if (checked) selectedIds.add(id);
+            else selectedIds.delete(id);
+            cb.checked = checked;
+        });
+        updateBatchBar();
+    }
+
+    function updateBatchBar() {
+        const bar = document.getElementById('batch-bar');
+        const count = document.getElementById('selected-count');
+        count.textContent = selectedIds.size;
+        if (selectedIds.size > 0) bar.classList.remove('hidden');
+        else bar.classList.add('hidden');
+    }
+
+    function showBatchTagModal() {
+        const presetTags = ['班主任', '骨干教师', '新教师', '优秀教师', '学科带头人'];
+        let html = `
+            <div class="modal-overlay" onclick="if(event.target===this)this.remove()">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>批量添加标签 (${selectedIds.size} 人)</h3>
+                        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="btn-group">
+                            ${presetTags.map(tag => `<button class="btn btn-outline" onclick="batchAddTag('${tag}')">${tag}</button>`).join('')}
+                        </div>
+                        <div class="flex gap-8 mt-16">
+                            <input type="text" class="form-control" id="batch-tag-input" placeholder="自定义标签">
+                            <button class="btn btn-primary" onclick="batchAddTag(document.getElementById('batch-tag-input').value)">添加</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+    }
+
+    async function batchAddTag(tag) {
+        if (!tag) return;
+        try {
+            await api('/api/teachers/batch-update', {
+                method: 'POST',
+                body: JSON.stringify({
+                    teacher_ids: Array.from(selectedIds),
+                    field: 'tags',
+                    value: tag
+                })
+            });
+            showToast(`已为 ${selectedIds.size} 人添加标签: ${tag}`, 'success');
+            document.querySelector('.modal-overlay')?.remove();
+            selectedIds.clear();
+            updateBatchBar();
+            loadTeachers(currentPage);
+        } catch (e) {}
+    }
+
+    async function batchDelete() {
+        if (!confirm(`确定要删除选中的 ${selectedIds.size} 名教师吗？此操作不可恢复。`)) return;
+        let deleted = 0;
+        for (const id of selectedIds) {
+            try {
+                await api(`/api/teachers/${id}`, { method: 'DELETE' });
+                deleted++;
+            } catch (e) {}
+        }
+        showToast(`已删除 ${deleted} 名教师`, 'success');
+        selectedIds.clear();
+        updateBatchBar();
+        loadTeachers(1);
+        loadQuickStats();
+    }
+</script>
+</body>
+</html>

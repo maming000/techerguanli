@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual env
+venv/
+
+# OS
+.DS_Store
+
+# Sensitive / data
+/database/*.db
+/uploads/
+/exports/
+/test_data/
+
+# Logs
+*.log

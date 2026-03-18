@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="教师信息管理系统 - 数据导入">
+    <title>数据导入 - 教师信息管理系统</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-layout">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1><span class="icon">🎓</span> 教师管理</h1>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/" class="nav-item">
+                <span class="nav-icon">📋</span> 教师列表
+            </a>
+            <a href="/upload" class="nav-item active">
+                <span class="nav-icon">📤</span> 数据导入
+            </a>
+            <a href="/stats" class="nav-item">
+                <span class="nav-icon">📊</span> 统计分析
+            </a>
+        </nav>
+    </aside>
+
+    <!-- 主内容 -->
+    <main class="main-content">
+        <header class="page-header">
+            <h1 class="page-title">数据导入</h1>
+        </header>
+
+        <div class="content-area">
+            <!-- 上传区域 -->
+            <div class="card mb-24">
+                <div class="card-body">
+                    <div class="upload-zone" id="drop-zone">
+                        <div class="upload-icon">📁</div>
+                        <h3>拖拽文件到此处上传</h3>
+                        <p>支持 .xlsx / .xls / .docx / .doc 格式，可同时上传多个文件</p>
+                        <button class="btn btn-primary btn-lg mt-16">选择文件</button>
+                    </div>
+                    <input type="file" id="file-input" multiple
+                           accept=".xlsx,.xls,.docx,.doc" style="display:none;">
+                </div>
+            </div>
+
+            <!-- 进度区域 -->
+            <div class="card mb-24 hidden" id="progress-area">
+                <div class="card-body">
+                    <p id="progress-text">准备上传...</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 结果区域 -->
+            <div class="hidden" id="result-area">
+                <h2 class="mb-16">📊 导入结果</h2>
+                <div id="result-list"></div>
+                <div class="mt-24 text-center">
+                    <a href="/" class="btn btn-primary btn-lg">查看教师列表 →</a>
+                </div>
+            </div>
+
+            <!-- 使用说明 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>📖 使用说明</h2>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <div>
+                            <h3 style="margin-bottom: 12px;">📗 Excel 文件</h3>
+                            <ul style="list-style: none; padding: 0; font-size: 14px; color: var(--text-secondary);">
+                                <li style="padding: 6px 0;">✅ 第一行为表头（如：姓名、性别、身份证号...）</li>
+                                <li style="padding: 6px 0;">✅ 支持多 Sheet，每个 Sheet 独立解析</li>
+                                <li style="padding: 6px 0;">✅ 自动识别字段，未识别字段自动扩展</li>
+                                <li style="padding: 6px 0;">✅ 支持 .xlsx 和 .xls 格式</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 style="margin-bottom: 12px;">📘 Word 文件</h3>
+                            <ul style="list-style: none; padding: 0; font-size: 14px; color: var(--text-secondary);">
+                                <li style="padding: 6px 0;">✅ 支持表格形式（横向/纵向）</li>
+                                <li style="padding: 6px 0;">✅ 支持 "字段名：值" 的文本格式</li>
+                                <li style="padding: 6px 0;">✅ 支持 .docx 格式</li>
+                                <li style="padding: 6px 0;">✅ 自动识别并提取教师信息</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px; padding: 16px; background: var(--info-bg); border-radius: 8px; font-size: 14px;">
+                        <strong>💡 智能合并：</strong>
+                        系统会自动根据 <strong>身份证号 → 手机号 → 姓名</strong> 的优先级进行去重。重复数据不会覆盖已有信息，只会补全空缺字段。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/upload.js"></script>
+</body>
+</html>
