@@ -4,11 +4,12 @@
 import os
 import json
 from datetime import datetime
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
 from fastapi.responses import FileResponse
 from typing import Optional
 from backend.database import get_connection
 from backend.config import EXPORT_DIR
+from backend.services.auth_utils import get_current_user, require_roles
 
 router = APIRouter(prefix="/api/export", tags=["数据导出"])
 
@@ -33,9 +34,11 @@ async def export_excel(
     min_age: Optional[int] = Query(None),
     max_age: Optional[int] = Query(None),
     tag: Optional[str] = Query(None),
+    user: dict = Depends(get_current_user),
 ):
     """将筛选结果导出为 Excel"""
     import pandas as pd
+    require_roles(user, {"admin", "viewer"})
 
     conn = get_connection()
     try:

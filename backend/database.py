@@ -89,12 +89,58 @@ def init_database():
         )
     """)
 
+    # 用户表（管理员/教师账号）
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL,
+            teacher_id INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE SET NULL
+        )
+    """)
+
+    # 登录会话
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_sessions (
+            token TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            expires_at DATETIME NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
+    # 教师改动审核请求
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS teacher_change_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            teacher_id INTEGER NOT NULL,
+            requester_user_id INTEGER NOT NULL,
+            action TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            reviewer_user_id INTEGER,
+            review_note TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            reviewed_at DATETIME,
+            FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE,
+            FOREIGN KEY (requester_user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (reviewer_user_id) REFERENCES users(id) ON DELETE SET NULL
+        )
+    """)
+
     # 创建索引
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_teachers_name ON teachers(name)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_teachers_id_card ON teachers(id_card)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_teachers_mobile ON teachers(mobile)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_extra_teacher_id ON teacher_extra_fields(teacher_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_logs_teacher_id ON change_logs(teacher_id)")
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_teacher_id ON users(teacher_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_change_requests_status ON teacher_change_requests(status)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_change_requests_teacher_id ON teacher_change_requests(teacher_id)")
 
     # 初始化内置字段注册
     builtin_fields = [
@@ -123,6 +169,26 @@ def init_database():
         cursor.execute(
             "INSERT OR IGNORE INTO field_registry (field_name, display_name, field_type, is_builtin) VALUES (?, ?, ?, ?)",
             (field_name, display_name, field_type, is_builtin)
+        )
+
+    # 初始化默认管理员
+    cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+    has_admin = cursor.fetchone()[0] > 0
+    if not has_admin:
+        from backend.services.auth_utils import hash_password
+        cursor.execute(
+            "INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'admin')",
+            ("admin", hash_password("admin123"))
+        )
+
+    # 初始化默认浏览账号（只读）
+    cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'viewer'")
+    has_viewer = cursor.fetchone()[0] > 0
+    if not has_viewer:
+        from backend.services.auth_utils import hash_password
+        cursor.execute(
+            "INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'viewer')",
+            ("viewer", hash_password("viewer123"))
         )
 
     conn.commit()

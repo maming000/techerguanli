@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="新教师入职信息登记">
+    <title>新教师入职登记</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="m-body">
+<main class="m-shell" style="max-width: 900px; margin: 0 auto; padding: 20px 12px 32px;">
+    <header class="card mb-16">
+        <div class="card-body">
+            <h1 style="font-size:24px; margin-bottom: 8px;">新教师信息登记</h1>
+            <p class="text-muted">请如实填写，提交后系统将自动生成教师账号并显示初始密码。</p>
+        </div>
+    </header>
+
+    <section class="card">
+        <div class="card-body">
+            <form id="onboard-form">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+                    <div class="form-group">
+                        <label class="form-label">姓名 *</label>
+                        <input class="form-control" name="name" required placeholder="请输入姓名">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">性别</label>
+                        <select class="form-control" name="gender">
+                            <option value="">请选择</option>
+                            <option value="男">男</option>
+                            <option value="女">女</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">手机号 *</label>
+                        <input class="form-control" name="mobile" required placeholder="用于账号识别">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">身份证号 *</label>
+                        <input class="form-control" name="id_card" required placeholder="18位身份证号">
+                        <p id="id-card-hint" class="text-muted" style="margin-top:6px;font-size:12px;" aria-live="polite"></p>
+                        <p id="id-card-derived-hint" class="text-muted" style="margin-top:4px;font-size:12px;" aria-live="polite"></p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">出生日期（自动提取）</label>
+                        <input class="form-control" id="onboard-birth-date" name="birth_date" readonly placeholder="身份证校验通过后自动填充">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">任教学科 *</label>
+                        <input class="form-control" name="subject" required placeholder="如：数学">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">职称</label>
+                        <input class="form-control" name="title" placeholder="如：一级教师">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">学历 *</label>
+                        <input class="form-control" name="education" required placeholder="如：本科">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">毕业院校 *</label>
+                        <input class="form-control" name="graduate_school" required placeholder="如：XX师范大学">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">专业 *</label>
+                        <input class="form-control" name="major" required placeholder="如：数学与应用数学">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">政治面貌 *</label>
+                        <input class="form-control" name="political_status" required placeholder="如：中共党员">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">电子邮件 *</label>
+                        <input class="form-control" name="email" type="email" required placeholder="如：name@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">民族 *</label>
+                        <input class="form-control" name="ethnicity" required placeholder="如：汉族">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">籍贯 *</label>
+                        <input class="form-control" name="native_place" required placeholder="精确到某某镇某某村">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">入职日期</label>
+                        <input class="form-control" type="date" name="hire_date">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">入党时间</label>
+                        <input class="form-control" type="date" name="party_join_date">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">原单位</label>
+                        <input class="form-control" name="original_unit" placeholder="如：某某中学">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">是否师范生</label>
+                        <select class="form-control" name="is_normal_university">
+                            <option value="">请选择</option>
+                            <option value="是">是</option>
+                            <option value="否">否</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group mt-16">
+                    <label class="form-label">家庭住址 *</label>
+                    <input class="form-control" name="address" required placeholder="请填写详细地址">
+                </div>
+                <div class="mt-16">
+                    <button type="submit" class="btn btn-primary btn-lg">提交登记</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section id="onboard-result" class="card mt-16 hidden"></section>
+</main>
+<script src="/js/onboard.js"></script>
+</body>
+</html>

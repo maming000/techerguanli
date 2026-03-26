@@ -18,6 +18,10 @@ class TeacherBase(BaseModel):
     graduate_school: Optional[str] = None
     education: Optional[str] = None
     political_status: Optional[str] = None
+    major: Optional[str] = None
+    party_join_date: Optional[str] = None
+    original_unit: Optional[str] = None
+    is_normal_university: Optional[str] = None
     ethnicity: Optional[str] = None
     native_place: Optional[str] = None
     address: Optional[str] = None
@@ -43,6 +47,7 @@ class TeacherUpdate(TeacherBase):
 class TeacherResponse(TeacherBase):
     """教师响应"""
     id: int
+    account_username: Optional[str] = None
     extra_fields: Dict[str, str] = {}
     created_at: Optional[str] = None
     updated_at: Optional[str] = None

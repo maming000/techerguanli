@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>移动端首页</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="m-body">
+<div class="m-shell">
+    <header class="m-topbar">
+        <h1>教师列表</h1>
+        <button class="btn btn-outline btn-sm" onclick="mobileLogout()">退出</button>
+    </header>
+
+    <main class="m-content">
+        <div class="card mb-16">
+            <div class="card-body">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input class="form-control" id="m-keyword" placeholder="搜索姓名/电话" style="padding-left:40px;" onkeyup="if(event.key==='Enter')loadMobileTeachers(1)">
+                </div>
+                <div class="btn-group mt-12" id="m-quick-filters">
+                    <button class="btn btn-outline btn-sm" data-qf="male" onclick="toggleMobileQuickFilter('male')">男教师</button>
+                    <button class="btn btn-outline btn-sm" data-qf="female" onclick="toggleMobileQuickFilter('female')">女教师</button>
+                    <button class="btn btn-outline btn-sm" data-qf="party" onclick="toggleMobileQuickFilter('party')">党员</button>
+                    <button class="btn btn-outline btn-sm" data-qf="young" onclick="toggleMobileQuickFilter('young')">30岁以下</button>
+                </div>
+                <div class="mt-12">
+                    <button class="btn btn-outline btn-sm" onclick="toggleMobileAdvancedFilters()">高级筛选</button>
+                    <button class="btn btn-outline btn-sm" onclick="resetMobileFilters()">重置</button>
+                </div>
+                <div id="m-advanced-filters" class="mt-12 hidden">
+                    <div class="form-group">
+                        <label class="form-label">性别</label>
+                        <select class="form-control" id="m-gender" onchange="loadMobileTeachers(1)">
+                            <option value="">全部</option>
+                            <option>男</option>
+                            <option>女</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">电话</label>
+                        <input class="form-control" id="m-phone" placeholder="手机/座机/短号" onchange="loadMobileTeachers(1)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">出生日期</label>
+                        <input class="form-control" id="m-birth-date" type="date" onchange="loadMobileTeachers(1)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">政治面貌</label>
+                        <input class="form-control" id="m-political-status" placeholder="如：中共党员" onchange="loadMobileTeachers(1)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">学历</label>
+                        <select class="form-control" id="m-education" onchange="loadMobileTeachers(1)">
+                            <option value="">全部</option>
+                            <option>博士</option>
+                            <option>硕士</option>
+                            <option>本科</option>
+                            <option>大专</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">职称</label>
+                        <input class="form-control" id="m-title" placeholder="如：高级教师" onchange="loadMobileTeachers(1)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">原单位</label>
+                        <input class="form-control" id="m-original-unit" placeholder="如：XX中学" onchange="loadMobileTeachers(1)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">参公时间</label>
+                        <input class="form-control" id="m-public-service-time" type="date" onchange="loadMobileTeachers(1)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">车牌号码</label>
+                        <input class="form-control" id="m-car-plate" placeholder="如：京A12345" onchange="loadMobileTeachers(1)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">毕业院校</label>
+                        <input class="form-control" id="m-graduate-school" placeholder="如：北京师范大学" onchange="loadMobileTeachers(1)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">民族</label>
+                        <input class="form-control" id="m-ethnicity" placeholder="如：汉族" onchange="loadMobileTeachers(1)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">家庭住址</label>
+                        <input class="form-control" id="m-address" placeholder="如：XX路XX号" onchange="loadMobileTeachers(1)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">学科</label>
+                        <input class="form-control" id="m-subject" placeholder="如：数学" onchange="loadMobileTeachers(1)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">入职时间</label>
+                        <input class="form-control" id="m-hire-date" type="date" onchange="loadMobileTeachers(1)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">标签</label>
+                        <input class="form-control" id="m-tag" placeholder="如：班主任" onchange="loadMobileTeachers(1)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最小年龄</label>
+                        <input class="form-control" id="m-min-age" type="number" placeholder="如 25" onchange="loadMobileTeachers(1)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最大年龄</label>
+                        <input class="form-control" id="m-max-age" type="number" placeholder="如 45" onchange="loadMobileTeachers(1)">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="m-list" class="m-list"></div>
+        <div id="m-pagination" class="m-pagination"></div>
+    </main>
+
+    <nav class="m-tabbar">
+        <a href="/m" class="active">列表</a>
+        <a href="/m/upload">导入</a>
+        <a href="/m/stats">统计</a>
+    </nav>
+</div>
+<script src="/js/mobile-common.js"></script>
+<script src="/js/mobile-index.js"></script>
+</body>
+</html>

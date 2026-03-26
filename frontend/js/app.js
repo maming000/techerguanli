@@ -3,16 +3,30 @@
  */
 
 const API_BASE = '';
+let cachedUser = null;
 
 /**
  * 封装 fetch 请求
  */
 async function api(url, options = {}) {
     try {
+        const token = localStorage.getItem('auth_token');
         const resp = await fetch(API_BASE + url, {
-            headers: { 'Content-Type': 'application/json', ...options.headers },
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                ...options.headers
+            },
             ...options
         });
+        if (resp.status === 401) {
+            localStorage.removeItem('auth_token');
+            cachedUser = null;
+            if (!window.location.pathname.startsWith('/login')) {
+                window.location.href = '/login';
+            }
+            throw new Error('未登录');
+        }
         if (!resp.ok) {
             const err = await resp.json().catch(() => ({ detail: '请求失败' }));
             throw new Error(err.detail || `HTTP ${resp.status}`);
@@ -124,4 +138,188 @@ function initNav() {
 }
 
 // 页面加载完成后初始化导航
-document.addEventListener('DOMContentLoaded', initNav);
+document.addEventListener('DOMContentLoaded', () => {
+    if (redirectToStandaloneMobile()) return;
+    initNav();
+    initMobileShell();
+    initAuthUI();
+});
+
+function redirectToStandaloneMobile() {
+    const path = window.location.pathname;
+    if (!isMobileViewport()) return false;
+    if (path.startsWith('/m')) return false;
+    if (path.startsWith('/api')) return false;
+    if (new URLSearchParams(window.location.search).get('desktop') === '1') return false;
+
+    const query = window.location.search || '';
+    let target = '/m';
+    if (path === '/upload') target = '/m/upload';
+    else if (path === '/stats') target = '/m/stats';
+    else if (path === '/detail') target = '/m/detail' + query;
+    else if (path === '/login') target = '/m/login';
+    else target = '/m';
+
+    window.location.replace(target);
+    return true;
+}
+
+function isMobileViewport() {
+    return window.matchMedia('(max-width: 768px)').matches;
+}
+
+function getMobileNavItems() {
+    return [
+        { href: '/', icon: '📋', label: '列表' },
+        { href: '/upload', icon: '📤', label: '导入' },
+        { href: '/stats', icon: '📊', label: '统计' },
+    ];
+}
+
+function initMobileShell() {
+    if (window.location.pathname.startsWith('/login')) return;
+
+    const oldNav = document.getElementById('mobile-bottom-nav');
+    if (oldNav) oldNav.remove();
+
+    if (!isMobileViewport()) {
+        document.body.classList.remove('mobile-shell-enabled');
+        return;
+    }
+
+    document.body.classList.add('mobile-shell-enabled');
+    const nav = document.createElement('nav');
+    nav.id = 'mobile-bottom-nav';
+    nav.className = 'mobile-bottom-nav';
+
+    const path = window.location.pathname;
+    const links = getMobileNavItems().map((item) => {
+        const active = item.href === path ? 'active' : '';
+        return `<a href="${item.href}" class="mobile-nav-link ${active}" data-mobile-route="${item.href}">
+            <span class="mobile-nav-icon">${item.icon}</span>
+            <span>${item.label}</span>
+        </a>`;
+    }).join('');
+
+    nav.innerHTML = links;
+    document.body.appendChild(nav);
+}
+
+window.addEventListener('resize', () => {
+    initMobileShell();
+});
+
+async function getCurrentUser() {
+    if (cachedUser) return cachedUser;
+    try {
+        cachedUser = await api('/api/auth/me');
+        return cachedUser;
+    } catch (e) {
+        return null;
+    }
+}
+
+async function initAuthUI() {
+    if (window.location.pathname.startsWith('/login')) return;
+    const user = await getCurrentUser();
+    if (!user) return;
+
+    // 隐藏教师无权限入口
+    if (user.role === 'teacher') {
+        document.querySelectorAll('.nav-item[href="/upload"], .nav-item[href="/stats"]').forEach(el => {
+            el.style.display = 'none';
+        });
+        document.querySelectorAll('.mobile-nav-link[data-mobile-route="/upload"], .mobile-nav-link[data-mobile-route="/stats"]').forEach(el => {
+            el.style.display = 'none';
+        });
+        const exportBtn = document.getElementById('export-btn');
+        if (exportBtn) exportBtn.style.display = 'none';
+        const importBtn = document.getElementById('import-btn');
+        if (importBtn) importBtn.style.display = 'none';
+        const bulkBtn = document.getElementById('bulk-account-btn');
+        if (bulkBtn) bulkBtn.style.display = 'none';
+        const batchBar = document.getElementById('batch-bar');
+        if (batchBar) batchBar.style.display = 'none';
+
+        // 教师账号不展示管理员首页，直接进入个人详情
+        if (window.location.pathname === '/' && user.teacher_id) {
+            window.location.replace(`/detail?id=${user.teacher_id}`);
+        }
+    }
+
+    if (user.role === 'viewer') {
+        const importBtn = document.getElementById('import-btn');
+        if (importBtn) importBtn.style.display = 'none';
+        const bulkBtn = document.getElementById('bulk-account-btn');
+        if (bulkBtn) bulkBtn.style.display = 'none';
+        const batchBar = document.getElementById('batch-bar');
+        if (batchBar) batchBar.style.display = 'none';
+    }
+
+    // 追加退出按钮
+    const nav = document.querySelector('.sidebar-nav');
+    if (nav && !document.getElementById('logout-link')) {
+        const a = document.createElement('a');
+        a.href = 'javascript:void(0)';
+        a.id = 'logout-link';
+        a.className = 'nav-item';
+        a.innerHTML = `<span class="nav-icon">🚪</span> 退出登录`;
+        a.onclick = async () => {
+            try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) {}
+            localStorage.removeItem('auth_token');
+            cachedUser = null;
+            window.location.href = '/login';
+        };
+        nav.appendChild(a);
+    }
+
+    if (isMobileViewport()) {
+        if (!document.getElementById('mobile-logout-link')) {
+            const mobileNav = document.getElementById('mobile-bottom-nav');
+            if (mobileNav) {
+                const logout = document.createElement('a');
+                logout.href = 'javascript:void(0)';
+                logout.id = 'mobile-logout-link';
+                logout.className = 'mobile-nav-link';
+                logout.innerHTML = `<span class="mobile-nav-icon">🚪</span><span>退出</span>`;
+                logout.onclick = async () => {
+                    try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) {}
+                    localStorage.removeItem('auth_token');
+                    cachedUser = null;
+                    window.location.href = '/login';
+                };
+                mobileNav.appendChild(logout);
+            }
+        }
+    }
+
+    // 修改密码入口
+    if (nav && !document.getElementById('change-password-link')) {
+        const a = document.createElement('a');
+        a.href = 'javascript:void(0)';
+        a.id = 'change-password-link';
+        a.className = 'nav-item';
+        a.innerHTML = `<span class="nav-icon">🔑</span> 修改密码`;
+        a.onclick = () => showChangePasswordModal();
+        nav.appendChild(a);
+    }
+}
+
+async function showChangePasswordModal() {
+    const oldPwd = prompt('请输入旧密码');
+    if (!oldPwd) return;
+    const newPwd = prompt('请输入新密码');
+    if (!newPwd) return;
+    const newPwd2 = prompt('请再次输入新密码');
+    if (newPwd !== newPwd2) {
+        showToast('两次新密码不一致', 'warning');
+        return;
+    }
+    try {
+        await api('/api/auth/change-password', {
+            method: 'POST',
+            body: JSON.stringify({ old_password: oldPwd, new_password: newPwd })
+        });
+        showToast('密码已修改', 'success');
+    } catch (e) {}
+}

@@ -32,8 +32,9 @@
         <header class="page-header">
             <h1 class="page-title">教师列表</h1>
             <div class="header-actions">
-                <button class="btn btn-primary" onclick="exportExcel()">📥 导出 Excel</button>
-                <button class="btn btn-outline" onclick="window.location.href='/upload'">📤 导入数据</button>
+                <button class="btn btn-primary" id="export-btn" onclick="exportExcel()">📥 导出 Excel</button>
+                <button class="btn btn-outline" id="import-btn" onclick="window.location.href='/upload'">📤 导入数据</button>
+                <button class="btn btn-outline" id="bulk-account-btn" onclick="bulkCreateAccounts()">👥 批量生成账号</button>
             </div>
         </header>
 
@@ -67,6 +68,16 @@
                         <h3 id="young-count">-</h3>
                         <p>30岁以下</p>
                     </div>
+                </div>
+            </div>
+
+            <div class="card mb-24" id="approval-card" style="display:none;">
+                <div class="card-header">
+                    <h2>🛡️ 教师改动审核</h2>
+                    <button class="btn btn-outline btn-sm" onclick="loadPendingApprovals()">刷新</button>
+                </div>
+                <div class="card-body" id="approval-list">
+                    <div class="loading"><div class="spinner"></div> 加载中...</div>
                 </div>
             </div>
 
@@ -162,7 +173,9 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">职称</label>
-                        <input type="text" class="form-control" id="filter-title" placeholder="如: 高级教师" onchange="searchTeachers()">
+                        <select class="form-control" id="filter-title" onchange="searchTeachers()">
+                            <option value="">全部</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label class="form-label">原单位</label>
@@ -209,19 +222,22 @@
                         <button class="btn btn-primary" onclick="searchTeachers()">🔍 查询</button>
                     </div>
                 </div>
+
             </div>
 
-            <!-- 教师表格 -->
+            <!-- 教师列表 -->
             <div class="card">
                 <div class="table-wrapper">
                     <table>
                         <thead>
                             <tr>
+                                <th>序号</th>
                                 <th>
                                     <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
                                 </th>
                                 <th>ID</th>
                                 <th>姓名</th>
+                                <th>账号</th>
                                 <th>性别</th>
                                 <th>年龄</th>
                                 <th>手机</th>
@@ -233,9 +249,23 @@
                             </tr>
                         </thead>
                         <tbody id="teacher-list">
-                            <tr><td colspan="11" class="loading"><div class="spinner"></div> 加载中...</td></tr>
+                            <tr><td colspan="13" class="loading"><div class="spinner"></div> 加载中...</td></tr>
                         </tbody>
                     </table>
+                </div>
+                <div class="flex items-center gap-16" style="justify-content: space-between; padding: 12px 16px; border-top: 1px solid var(--border-color);">
+                    <div class="text-muted">筛选结果：<strong id="filtered-count">-</strong> 人</div>
+                    <div class="flex items-center gap-8">
+                        <span class="text-muted">每页显示</span>
+                        <select class="form-control" id="page-size" style="width: 90px;" onchange="changePageSize()">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="30">30</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <span class="text-muted">人</span>
+                    </div>
                 </div>
                 <div id="pagination-area"></div>
             </div>
@@ -258,6 +288,7 @@
 <script>
     // 状态管理
     let currentPage = 1;
+    let currentPageSize = 20;
     let activeFilters = {};
     let selectedIds = new Set();
     let activeTag = '';
@@ -267,14 +298,18 @@
         loadTeachers();
         loadQuickStats();
         loadTagFilters();
+        loadTitleOptions();
+        loadPendingApprovals();
     });
 
     // 加载教师列表
     async function loadTeachers(page = 1) {
         currentPage = page;
+        document.getElementById('teacher-list').innerHTML =
+            '<tr><td colspan="13" class="loading"><div class="spinner"></div> 加载中...</td></tr>';
         const params = new URLSearchParams();
         params.set('page', page);
-        params.set('page_size', 20);
+        params.set('page_size', currentPageSize);
 
         const keyword = document.getElementById('search-input').value.trim();
         if (keyword) params.set('keyword', keyword);
@@ -334,7 +369,7 @@
             renderTeacherList(result);
         } catch (e) {
             document.getElementById('teacher-list').innerHTML =
-                `<tr><td colspan="10" class="text-center text-muted" style="padding:40px;">加载失败</td></tr>`;
+                `<tr><td colspan="13" class="text-center text-muted" style="padding:40px;">加载失败</td></tr>`;
         }
     }
 
@@ -342,9 +377,10 @@
     function renderTeacherList(result) {
         const tbody = document.getElementById('teacher-list');
         const pag = document.getElementById('pagination-area');
+        const countEl = document.getElementById('filtered-count');
 
         if (result.data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="11">
+            tbody.innerHTML = `<tr><td colspan="13">
                 <div class="empty-state">
                     <div class="empty-icon">📭</div>
                     <h3>暂无教师数据</h3>
@@ -353,29 +389,33 @@
                 </div>
             </td></tr>`;
             pag.innerHTML = '';
+            if (countEl) countEl.textContent = '0';
             return;
         }
 
         let html = '';
-        for (const t of result.data) {
+        result.data.forEach((t, idx) => {
             const checked = selectedIds.has(t.id) ? 'checked' : '';
-            html += `<tr>
-                <td><input type="checkbox" value="${t.id}" ${checked} onchange="toggleSelect(${t.id})"></td>
-                <td style="color:var(--text-muted); font-weight:600;">${t.id}</td>
-                <td><a href="/detail?id=${t.id}" style="font-weight:600;">${t.name || '-'}</a></td>
-                <td>${t.gender || '-'}</td>
-                <td>${t.age || '-'}</td>
-                <td>${t.mobile || t.phone || '-'}</td>
-                <td>${t.education || '-'}</td>
-                <td>${t.political_status || '-'}</td>
-                <td>${t.subject || '-'}</td>
-                <td>${renderTags(t.tags)}</td>
-                <td>
-                    <a href="/detail?id=${t.id}" class="btn btn-outline btn-sm">查看</a>
-                </td>
-            </tr>`;
-        }
+            const serial = (result.page - 1) * result.page_size + idx + 1;
+            html += `
+                <tr>
+                    <td style="color:var(--text-muted); font-weight:600;">${serial}</td>
+                    <td><input type="checkbox" value="${t.id}" ${checked} onchange="toggleSelect(${t.id})"></td>
+                    <td style="color:var(--text-muted); font-weight:600;">${t.id}</td>
+                    <td><a href="/detail?id=${t.id}" style="font-weight:600;">${t.name || '-'}</a></td>
+                    <td>${t.account_username || '-'}</td>
+                    <td>${t.gender || '-'}</td>
+                    <td>${t.age || '-'}</td>
+                    <td>${t.mobile || t.phone || '-'}</td>
+                    <td>${t.education || '-'}</td>
+                    <td>${t.political_status || '-'}</td>
+                    <td>${t.subject || '-'}</td>
+                    <td>${renderTags(t.tags)}</td>
+                    <td><a href="/detail?id=${t.id}" class="btn btn-outline btn-sm">查看</a></td>
+                </tr>`;
+        });
         tbody.innerHTML = html;
+        if (countEl) countEl.textContent = result.total;
 
         // 分页
         pag.innerHTML = renderPagination(result.page, result.total_pages, result.total, 'loadTeachers');
@@ -383,6 +423,8 @@
 
     // 加载快捷统计
     async function loadQuickStats() {
+        const user = await getCurrentUser();
+        if (!user || user.role !== 'admin') return;
         try {
             const stats = await api('/api/stats/');
             document.getElementById('total-count').textContent = stats.total_teachers;
@@ -397,9 +439,109 @@
         } catch (e) {}
     }
 
+    async function loadPendingApprovals() {
+        const user = await getCurrentUser();
+        const card = document.getElementById('approval-card');
+        const list = document.getElementById('approval-list');
+        if (!card || !list) return;
+        if (!user || user.role !== 'admin') {
+            card.style.display = 'none';
+            return;
+        }
+        card.style.display = '';
+        list.innerHTML = '<div class="loading"><div class="spinner"></div> 加载中...</div>';
+        try {
+            const rows = await api('/api/teachers/audit/change-requests?status=pending&limit=50');
+            if (!rows || rows.length === 0) {
+                list.innerHTML = '<p class="text-muted">暂无待审核请求</p>';
+                return;
+            }
+            let html = '<div class="table-wrapper"><table><thead><tr><th>ID</th><th>教师</th><th>发起人</th><th>动作</th><th>时间</th><th>操作</th></tr></thead><tbody>';
+            for (const r of rows) {
+                html += `<tr>
+                    <td>${r.id}</td>
+                    <td>${r.teacher_name || ('#' + r.teacher_id)}</td>
+                    <td>${r.requester_username || ('#' + r.requester_user_id)}</td>
+                    <td>${r.action}</td>
+                    <td>${formatDate(r.created_at)}</td>
+                    <td>
+                        <div class="btn-group">
+                            <button class="btn btn-primary btn-sm" onclick="approveRequest(${r.id})">通过</button>
+                            <button class="btn btn-danger btn-sm" onclick="rejectRequest(${r.id})">驳回</button>
+                        </div>
+                    </td>
+                </tr>`;
+            }
+            html += '</tbody></table></div>';
+            list.innerHTML = html;
+        } catch (e) {
+            list.innerHTML = `<p class="text-danger">加载审核请求失败：${e.message}</p>`;
+        }
+    }
+
+    async function approveRequest(requestId) {
+        if (!confirm('确认通过该请求并立即生效？')) return;
+        try {
+            await api(`/api/teachers/audit/change-requests/${requestId}/approve`, { method: 'POST' });
+            showToast('已通过并生效', 'success');
+            loadPendingApprovals();
+            loadTeachers(currentPage);
+        } catch (e) {}
+    }
+
+    async function rejectRequest(requestId) {
+        const note = prompt('可选：请输入驳回原因') || '';
+        try {
+            const token = localStorage.getItem('auth_token');
+            const form = new FormData();
+            form.append('note', note);
+            const resp = await fetch(`/api/teachers/audit/change-requests/${requestId}/reject`, {
+                method: 'POST',
+                body: form,
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({ detail: '驳回失败' }));
+                throw new Error(err.detail || '驳回失败');
+            }
+            showToast('已驳回', 'success');
+            loadPendingApprovals();
+        } catch (e) {
+            showToast(e.message || '驳回失败', 'error');
+        }
+    }
+
     // 搜索
     function searchTeachers() {
         loadTeachers(1);
+    }
+
+    function changePageSize() {
+        const size = parseInt(document.getElementById('page-size')?.value || '20', 10);
+        if (!isNaN(size)) currentPageSize = size;
+        loadTeachers(1);
+    }
+
+    async function bulkCreateAccounts() {
+        if (!confirm('将为所有尚未创建账号的教师批量生成账号，并导出 Excel，是否继续？')) return;
+        try {
+            const token = localStorage.getItem('auth_token');
+            const resp = await fetch('/api/users/bulk-create-export', {
+                method: 'POST',
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
+            if (!resp.ok) throw new Error('批量生成账号失败');
+            const blob = await resp.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `教师账号_批量生成_${new Date().toISOString().slice(0,10)}.xlsx`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('账号已生成并导出', 'success');
+        } catch (e) {
+            showToast('批量生成账号失败: ' + e.message, 'error');
+        }
     }
 
     // 快捷筛选
@@ -460,6 +602,8 @@
 
     // 加载标签筛选按钮
     async function loadTagFilters() {
+        const user = await getCurrentUser();
+        if (!user || user.role !== 'admin') return;
         try {
             const tagStats = await api('/api/stats/tags');
             const container = document.getElementById('tag-filter-buttons');
@@ -482,6 +626,26 @@
                 i++;
             }
             container.innerHTML = html;
+        } catch (e) {}
+    }
+
+    // 加载职称筛选下拉选项
+    async function loadTitleOptions() {
+        const select = document.getElementById('filter-title');
+        if (!select) return;
+        const user = await getCurrentUser();
+        if (!user || user.role !== 'admin') return;
+        try {
+            const titles = await api('/api/stats/titles');
+            const current = select.value || '';
+            select.innerHTML = '<option value="">全部</option>';
+            (titles || []).forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t;
+                opt.textContent = t;
+                if (t === current) opt.selected = true;
+                select.appendChild(opt);
+            });
         } catch (e) {}
     }
 
@@ -540,7 +704,10 @@
         if (hireDate) params.set('hire_date', hireDate);
 
         try {
-            const resp = await fetch(`/api/export/excel?${params.toString()}`);
+            const token = localStorage.getItem('auth_token');
+            const resp = await fetch(`/api/export/excel?${params.toString()}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
             if (!resp.ok) throw new Error('导出失败');
             const blob = await resp.blob();
             const url = URL.createObjectURL(blob);

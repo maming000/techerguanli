@@ -1,17 +1,19 @@
 """
 统计分析路由
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from backend.database import get_connection
 from backend.models import StatsResponse
 from backend.services.id_card_utils import extract_birth_date, calculate_age, validate_id_card
+from backend.services.auth_utils import get_current_user, require_roles
 
 router = APIRouter(prefix="/api/stats", tags=["统计分析"])
 
 
 @router.get("/", response_model=StatsResponse)
-async def get_stats():
+async def get_stats(user=Depends(get_current_user)):
     """获取教师统计数据"""
+    require_roles(user, {"admin", "viewer"})
     conn = get_connection()
     try:
         # 总人数
@@ -117,8 +119,9 @@ async def get_stats():
 
 
 @router.get("/tags")
-async def get_tag_stats():
+async def get_tag_stats(user=Depends(get_current_user)):
     """获取标签统计"""
+    require_roles(user, {"admin", "viewer"})
     conn = get_connection()
     try:
         import json
@@ -137,8 +140,9 @@ async def get_tag_stats():
 
 
 @router.get("/fields")
-async def get_field_stats():
+async def get_field_stats(user=Depends(get_current_user)):
     """获取所有已注册字段"""
+    require_roles(user, {"admin", "viewer"})
     conn = get_connection()
     try:
         rows = conn.execute(
@@ -149,9 +153,24 @@ async def get_field_stats():
         conn.close()
 
 
+@router.get("/titles")
+async def get_title_options(user=Depends(get_current_user)):
+    """获取职称下拉选项"""
+    require_roles(user, {"admin", "viewer"})
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT DISTINCT title FROM teachers WHERE title IS NOT NULL AND TRIM(title) != '' ORDER BY title"
+        ).fetchall()
+        return [row["title"] for row in rows if row["title"]]
+    finally:
+        conn.close()
+
+
 @router.get("/logs")
-async def get_recent_logs(limit: int = 50):
+async def get_recent_logs(limit: int = 50, user=Depends(get_current_user)):
     """获取最近操作日志"""
+    require_roles(user, {"admin", "viewer"})
     conn = get_connection()
     try:
         rows = conn.execute(

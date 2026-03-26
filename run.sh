@@ -23,10 +23,21 @@ fi
 
 echo "📌 使用 Python: $($PYTHON --version)"
 
-# 创建虚拟环境（如果不存在）
-if [ ! -d "venv" ]; then
+# 校验虚拟环境是否有效（目录搬迁后旧 venv 常会失效）
+RECREATE_VENV=0
+EXPECTED_VENV_PATH="$(pwd)/venv"
+
+if [ ! -d "venv" ] || [ ! -x "venv/bin/python" ]; then
+    RECREATE_VENV=1
+elif ! grep -q "$EXPECTED_VENV_PATH" "venv/bin/activate" 2>/dev/null; then
+    RECREATE_VENV=1
+fi
+
+# 创建或重建虚拟环境
+if [ "$RECREATE_VENV" -eq 1 ]; then
     echo ""
-    echo "📦 创建虚拟环境..."
+    echo "📦 创建/重建虚拟环境..."
+    rm -rf venv
     $PYTHON -m venv venv
     if [ $? -ne 0 ]; then
         echo "❌ 虚拟环境创建失败"
@@ -41,10 +52,25 @@ source venv/bin/activate
 # 安装依赖
 echo ""
 echo "📦 检查并安装依赖..."
-pip install -r backend/requirements.txt -q 2>&1
+python -m pip install --upgrade pip -q 2>&1 || true
+python -m pip install -r backend/requirements.txt -q 2>&1
 
 if [ $? -ne 0 ]; then
-    echo "❌ 依赖安装失败，请检查网络连接"
+    echo "❌ 依赖安装失败"
+    echo "   可能原因：网络不可用，或 PyPI 源不可访问"
+    echo "   建议重试："
+    echo "   1) python -m pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple"
+    echo "   2) ./run.sh"
+    exit 1
+fi
+
+# 检查端口占用
+if lsof -iTCP:8000 -sTCP:LISTEN -n -P >/dev/null 2>&1; then
+    echo ""
+    echo "⚠️ 端口 8000 已被占用，当前监听进程："
+    lsof -iTCP:8000 -sTCP:LISTEN -n -P
+    echo ""
+    echo "请先停止占用进程，或修改启动端口。"
     exit 1
 fi
 

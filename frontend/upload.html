@@ -34,9 +34,103 @@
         </header>
 
         <div class="content-area">
+            <div class="card mb-24">
+                <div class="card-header">
+                    <h2>📝 问卷式录入（自动去重）</h2>
+                </div>
+                <div class="card-body">
+                    <form id="questionnaire-form">
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+                            <div class="form-group">
+                                <label class="form-label">姓名 *</label>
+                                <input class="form-control" name="name" required placeholder="请输入教师姓名">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">性别</label>
+                                <select class="form-control" name="gender">
+                                    <option value="">请选择</option>
+                                    <option value="男">男</option>
+                                    <option value="女">女</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">身份证号</label>
+                                <input class="form-control" name="id_card" placeholder="18位身份证号">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">手机号</label>
+                                <input class="form-control" name="mobile" placeholder="用于去重匹配">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">联系电话</label>
+                                <input class="form-control" name="phone" placeholder="座机/手机号">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">学历</label>
+                                <input class="form-control" name="education" placeholder="如：本科">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">职称</label>
+                                <input class="form-control" name="title" placeholder="如：一级教师">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">任教学科</label>
+                                <input class="form-control" name="subject" placeholder="如：数学">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">政治面貌</label>
+                                <input class="form-control" name="political_status" placeholder="如：中共党员">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">毕业院校</label>
+                                <input class="form-control" name="graduate_school" placeholder="如：北京师范大学">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">入职日期</label>
+                                <input class="form-control" type="date" name="hire_date">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">标签（逗号分隔）</label>
+                                <input class="form-control" name="tags" placeholder="如：班主任,骨干教师">
+                            </div>
+                        </div>
+                        <div class="form-group mt-16">
+                            <label class="form-label">家庭住址</label>
+                            <input class="form-control" name="address" placeholder="可选">
+                        </div>
+                        <div class="form-group mt-16">
+                            <label class="form-label">扩展字段（每行一个，格式：字段名=字段值）</label>
+                            <textarea class="form-control" name="extra_lines" rows="4" placeholder="原单位=滨河高中&#10;车牌号码=豫A12345"></textarea>
+                        </div>
+                        <div class="filter-row mt-16">
+                            <div class="form-group" style="max-width:320px;">
+                                <label class="form-label">重复数据处理策略</label>
+                                <select id="questionnaire-merge-policy" class="form-control">
+                                    <option value="fill_missing">仅补全缺失字段（推荐）</option>
+                                    <option value="overwrite">覆盖已有字段（以本次填写为准）</option>
+                                    <option value="skip_existing">匹配到重复时跳过</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="align-self:end;">
+                                <button type="submit" class="btn btn-primary">提交问卷录入</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="questionnaire-result" class="hidden mt-16"></div>
+                </div>
+            </div>
+
             <!-- 上传区域 -->
             <div class="card mb-24">
                 <div class="card-body">
+                    <div class="upload-controls mb-16">
+                        <label for="merge-policy" class="form-label">重复数据处理策略</label>
+                        <select id="merge-policy" class="form-control" style="max-width: 320px;">
+                            <option value="fill_missing">仅补全缺失字段（推荐）</option>
+                            <option value="overwrite">覆盖已有字段（以导入数据为准）</option>
+                            <option value="skip_existing">遇到重复记录直接跳过</option>
+                        </select>
+                    </div>
                     <div class="upload-zone" id="drop-zone">
                         <div class="upload-icon">📁</div>
                         <h3>拖拽文件到此处上传</h3>
@@ -45,7 +139,22 @@
                     </div>
                     <input type="file" id="file-input" multiple
                            accept=".xlsx,.xls,.docx,.doc" style="display:none;">
+                    <div id="pending-files" class="mt-16 hidden">
+                        <p class="text-muted mb-8" id="pending-text"></p>
+                        <div class="btn-group">
+                            <button class="btn btn-outline" id="preview-btn">预览导入影响</button>
+                            <button class="btn btn-primary" id="import-btn">确认并开始导入</button>
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            <!-- 预览区域 -->
+            <div class="card mb-24 hidden" id="preview-area">
+                <div class="card-header">
+                    <h2>🔍 导入预览（不写入数据库）</h2>
+                </div>
+                <div class="card-body" id="preview-list"></div>
             </div>
 
             <!-- 进度区域 -->

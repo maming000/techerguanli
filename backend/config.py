@@ -27,6 +27,9 @@ ALLOWED_EXTENSIONS = {".xlsx", ".xls", ".docx", ".doc"}
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 100
 
+# 新教师公开入职口令（通过环境变量配置）
+TEACHER_ONBOARDING_CODE = os.environ.get("TEACHER_ONBOARDING_CODE", "").strip()
+
 # 确保必要目录存在
 for d in [DATABASE_DIR, UPLOAD_DIR, EXPORT_DIR]:
     os.makedirs(d, exist_ok=True)

@@ -1,13 +1,18 @@
 """
 数据清洗与合并服务
 - 去重规则：身份证号 > 手机号 > 姓名
-- 合并策略：不覆盖已有数据，仅补全缺失字段
+- 合并策略：
+  - fill_missing: 不覆盖已有数据，仅补全缺失字段（默认）
+  - overwrite: 以新数据覆盖旧数据（仅覆盖非空值）
+  - skip_existing: 匹配到已有记录后直接跳过
 """
 import json
 from datetime import datetime
 from backend.database import get_connection
 from backend.services.id_card_utils import extract_birth_date, calculate_age, extract_gender_from_id
 from backend.config import BUILTIN_FIELDS
+
+MERGE_POLICIES = {"fill_missing", "overwrite", "skip_existing"}
 
 
 def clean_value(value) -> str | None:
@@ -63,7 +68,7 @@ def enrich_from_id_card(record: dict) -> dict:
     return record
 
 
-def find_existing_teacher(conn, record: dict) -> dict | None:
+def find_existing_teacher_with_reason(conn, record: dict) -> tuple[dict | None, str | None]:
     """
     按优先级查找已存在的教师记录
     优先级：身份证号 > 手机号 > 姓名
@@ -73,34 +78,76 @@ def find_existing_teacher(conn, record: dict) -> dict | None:
     if id_card:
         row = conn.execute("SELECT * FROM teachers WHERE id_card = ?", (id_card,)).fetchone()
         if row:
-            return dict(row)
+            return dict(row), "id_card"
 
     # 2. 手机号匹配
     mobile = record.get("mobile")
     if mobile:
         row = conn.execute("SELECT * FROM teachers WHERE mobile = ?", (mobile,)).fetchone()
         if row:
-            return dict(row)
+            return dict(row), "mobile"
 
     # 3. 姓名匹配（仅在有姓名时）
     name = record.get("name")
     if name:
         row = conn.execute("SELECT * FROM teachers WHERE name = ?", (name,)).fetchone()
         if row:
-            return dict(row)
+            return dict(row), "name"
 
-    return None
+    return None, None
 
 
-def merge_teacher(conn, existing: dict, new_data: dict, extra_fields: dict = None) -> tuple[bool, list]:
+def find_existing_teacher(conn, record: dict) -> dict | None:
+    existing, _ = find_existing_teacher_with_reason(conn, record)
+    return existing
+
+
+def normalize_record(record: dict) -> tuple[dict, dict]:
+    """清洗原始记录，返回 (主表字段, 扩展字段)"""
+    cleaned = {}
+    extra = {}
+    for key, value in record.items():
+        if key in BUILTIN_FIELDS:
+            if key in ("phone", "mobile", "short_phone"):
+                cleaned[key] = clean_phone(value)
+            elif key == "tags":
+                cleaned[key] = value if isinstance(value, list) else []
+            elif key == "age":
+                try:
+                    cleaned[key] = int(float(str(value))) if value else None
+                except (ValueError, TypeError):
+                    cleaned[key] = None
+            else:
+                cleaned[key] = clean_value(value)
+        else:
+            val = clean_value(value)
+            if val:
+                extra[key] = val
+
+    # 清理身份证号中的空格
+    if cleaned.get("id_card"):
+        cleaned["id_card"] = cleaned["id_card"].replace(" ", "").upper()
+
+    # 从身份证号提取信息
+    cleaned = enrich_from_id_card(cleaned)
+    return cleaned, extra
+
+
+def merge_teacher(conn, existing: dict, new_data: dict, extra_fields: dict = None, merge_policy: str = "fill_missing") -> tuple[bool, list]:
     """
-    合并教师数据：不覆盖已有数据，仅补全缺失字段
+    合并教师数据
     返回: (是否有更新, 变更日志列表)
     """
+    if merge_policy not in MERGE_POLICIES:
+        raise ValueError(f"不支持的合并策略: {merge_policy}")
+
     changes = []
     update_fields = {}
     teacher_id = existing["id"]
     teacher_name = existing.get("name") or new_data.get("name") or "未知"
+
+    if merge_policy == "skip_existing":
+        return False, []
 
     # 合并主表字段
     for field in BUILTIN_FIELDS:
@@ -108,16 +155,28 @@ def merge_teacher(conn, existing: dict, new_data: dict, extra_fields: dict = Non
             continue
         new_val = new_data.get(field)
         old_val = existing.get(field)
-        if new_val and not old_val:
-            update_fields[field] = new_val
-            changes.append({
-                "teacher_id": teacher_id,
-                "teacher_name": teacher_name,
-                "action": "补全字段",
-                "field_name": field,
-                "old_value": None,
-                "new_value": str(new_val)
-            })
+        if not new_val:
+            continue
+        if merge_policy == "fill_missing":
+            if old_val:
+                continue
+            action = "补全字段"
+            old_log_val = None
+        else:
+            if str(new_val) == str(old_val):
+                continue
+            action = "覆盖字段"
+            old_log_val = str(old_val) if old_val is not None else None
+
+        update_fields[field] = new_val
+        changes.append({
+            "teacher_id": teacher_id,
+            "teacher_name": teacher_name,
+            "action": action,
+            "field_name": field,
+            "old_value": old_log_val,
+            "new_value": str(new_val)
+        })
 
     # 更新主表
     if update_fields:
@@ -148,6 +207,21 @@ def merge_teacher(conn, existing: dict, new_data: dict, extra_fields: dict = Non
                     "old_value": None,
                     "new_value": str(field_value)
                 })
+            elif merge_policy == "overwrite":
+                old_extra_val = existing_extra["field_value"]
+                if str(old_extra_val) != str(field_value):
+                    conn.execute(
+                        "UPDATE teacher_extra_fields SET field_value = ? WHERE teacher_id = ? AND field_name = ?",
+                        (str(field_value), teacher_id, field_name)
+                    )
+                    changes.append({
+                        "teacher_id": teacher_id,
+                        "teacher_name": teacher_name,
+                        "action": "覆盖扩展字段",
+                        "field_name": field_name,
+                        "old_value": str(old_extra_val) if old_extra_val is not None else None,
+                        "new_value": str(field_value)
+                    })
 
     # 记录变更日志
     for change in changes:
@@ -205,11 +279,89 @@ def insert_teacher(conn, record: dict, extra_fields: dict = None) -> int:
     return teacher_id
 
 
-def process_records(records: list[dict]) -> dict:
+def _has_merge_changes(conn, existing: dict, new_data: dict, extra_fields: dict, merge_policy: str) -> bool:
+    """判断匹配到已有记录后，按策略是否会产生变更"""
+    if merge_policy == "skip_existing":
+        return False
+
+    for field in BUILTIN_FIELDS:
+        if field == "tags":
+            continue
+        new_val = new_data.get(field)
+        old_val = existing.get(field)
+        if not new_val:
+            continue
+        if merge_policy == "fill_missing":
+            if not old_val:
+                return True
+        elif str(new_val) != str(old_val):
+            return True
+
+    for field_name, field_value in (extra_fields or {}).items():
+        if not field_value:
+            continue
+        existing_extra = conn.execute(
+            "SELECT field_value FROM teacher_extra_fields WHERE teacher_id = ? AND field_name = ?",
+            (existing["id"], field_name)
+        ).fetchone()
+        if not existing_extra:
+            return True
+        if merge_policy == "overwrite" and str(existing_extra["field_value"]) != str(field_value):
+            return True
+
+    return False
+
+
+def analyze_records(records: list[dict], merge_policy: str = "fill_missing", sample_limit: int = 8) -> dict:
+    """
+    预分析导入影响（不写入数据库）
+    """
+    if merge_policy not in MERGE_POLICIES:
+        raise ValueError(f"不支持的合并策略: {merge_policy}")
+
+    conn = get_connection()
+    stats = {"new": 0, "updated": 0, "skipped": 0, "errors": [], "samples": []}
+
+    try:
+        for record in records:
+            try:
+                cleaned, extra = normalize_record(record)
+                existing, matched_by = find_existing_teacher_with_reason(conn, cleaned)
+                display_name = cleaned.get("name") or "未知"
+                sample = {
+                    "name": display_name,
+                    "match_by": matched_by,
+                    "action": "new"
+                }
+                if existing:
+                    if _has_merge_changes(conn, existing, cleaned, extra, merge_policy):
+                        stats["updated"] += 1
+                        sample["action"] = "update"
+                    else:
+                        stats["skipped"] += 1
+                        sample["action"] = "skip"
+                else:
+                    stats["new"] += 1
+
+                if len(stats["samples"]) < sample_limit:
+                    stats["samples"].append(sample)
+            except Exception as e:
+                name = record.get("name", "未知")
+                stats["errors"].append(f"分析 {name} 时出错: {str(e)}")
+    finally:
+        conn.close()
+
+    return stats
+
+
+def process_records(records: list[dict], merge_policy: str = "fill_missing") -> dict:
     """
     处理一批教师记录：清洗、去重、合并或插入
     返回处理结果统计
     """
+    if merge_policy not in MERGE_POLICIES:
+        raise ValueError(f"不支持的合并策略: {merge_policy}")
+
     conn = get_connection()
     stats = {"new": 0, "updated": 0, "skipped": 0, "errors": []}
 
@@ -217,38 +369,13 @@ def process_records(records: list[dict]) -> dict:
         for record in records:
             try:
                 # 清洗数据
-                cleaned = {}
-                extra = {}
-                for key, value in record.items():
-                    if key in BUILTIN_FIELDS:
-                        if key in ("phone", "mobile", "short_phone"):
-                            cleaned[key] = clean_phone(value)
-                        elif key == "tags":
-                            cleaned[key] = value if isinstance(value, list) else []
-                        elif key == "age":
-                            try:
-                                cleaned[key] = int(float(str(value))) if value else None
-                            except (ValueError, TypeError):
-                                cleaned[key] = None
-                        else:
-                            cleaned[key] = clean_value(value)
-                    else:
-                        val = clean_value(value)
-                        if val:
-                            extra[key] = val
-
-                # 清理身份证号中的空格
-                if cleaned.get("id_card"):
-                    cleaned["id_card"] = cleaned["id_card"].replace(" ", "")
-
-                # 从身份证号提取信息
-                cleaned = enrich_from_id_card(cleaned)
+                cleaned, extra = normalize_record(record)
 
                 # 查找已存在记录
                 existing = find_existing_teacher(conn, cleaned)
 
                 if existing:
-                    updated, _ = merge_teacher(conn, existing, cleaned, extra)
+                    updated, _ = merge_teacher(conn, existing, cleaned, extra, merge_policy=merge_policy)
                     if updated:
                         stats["updated"] += 1
                     else:

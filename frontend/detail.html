@@ -7,7 +7,7 @@
     <title>教师详情 - 教师信息管理系统</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
-<body>
+<body class="detail-modern-page">
 <div class="app-layout">
     <!-- 侧边栏 -->
     <aside class="sidebar">
@@ -31,8 +31,8 @@
     <main class="main-content">
         <header class="page-header">
             <div>
-                <h1 class="page-title" id="teacher-name">教师详情</h1>
-                <p class="text-muted" style="font-size: 13px; margin-top: 2px;" id="teacher-meta"></p>
+                <h1 class="page-title">教师档案</h1>
+                <p class="text-muted" style="font-size: 13px; margin-top: 2px;">现代化卡片视图</p>
             </div>
             <div class="header-actions">
                 <button class="btn btn-outline" onclick="window.location.href='/'">← 返回列表</button>
@@ -41,30 +41,60 @@
             </div>
         </header>
 
-        <div class="content-area">
-            <!-- 基本信息 -->
-            <div class="card mb-24">
-                <div class="card-header"><h2>📋 基本信息</h2></div>
-                <div class="card-body" id="detail-content">
-                    <div class="loading"><div class="spinner"></div> 加载中...</div>
+        <div class="content-area detail-modern-content">
+            <div id="profile-hero-wrap" class="mb-24">
+                <div class="profile-hero" id="profile-hero">
+                    <div class="profile-hero-content">
+                        <div id="hero-avatar-slot"></div>
+                        <div>
+                            <h1 class="profile-hero-title" id="teacher-name">教师详情</h1>
+                            <p class="profile-hero-meta" id="teacher-meta"></p>
+                        </div>
+                        <div class="profile-actions">
+                            <input id="avatar-input" type="file" accept=".png,.jpg,.jpeg,.webp" style="display:none;">
+                            <button class="btn btn-sm" onclick="document.getElementById('avatar-input').click()">上传头像</button>
+                            <button class="btn btn-sm" onclick="changeCoverColor()">主题色</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- 标签 -->
-            <div class="card mb-24">
-                <div class="card-header"><h2>🏷️ 标签</h2></div>
-                <div class="card-body" id="tags-section">
-                    <div class="loading"><div class="spinner"></div> 加载中...</div>
-                </div>
+            <div class="detail-layout">
+                <section class="detail-main-col">
+                    <!-- 基本信息 -->
+                    <div class="card mb-24 detail-card detail-info-card">
+                        <div class="card-header"><h2>📋 基本信息</h2></div>
+                        <div class="card-body" id="detail-content">
+                            <div class="loading"><div class="spinner"></div> 加载中...</div>
+                        </div>
+                    </div>
+
+                    <!-- 标签 -->
+                    <div class="card mb-24 detail-card detail-tag-card">
+                        <div class="card-header"><h2>🏷️ 标签</h2></div>
+                        <div class="card-body" id="tags-section">
+                            <div class="loading"><div class="spinner"></div> 加载中...</div>
+                        </div>
+                    </div>
+                </section>
+
+                <aside class="detail-side-col">
+                    <!-- 修改记录 -->
+                    <div class="card detail-card detail-log-card">
+                        <div class="card-header"><h2>📝 修改记录</h2></div>
+                        <div class="card-body" id="logs-section">
+                            <div class="loading"><div class="spinner"></div> 加载中...</div>
+                        </div>
+                    </div>
+
+                    <!-- 账号管理（管理员） -->
+                    <div class="card mt-24 detail-card detail-account-card" id="account-card" style="display:none;">
+                        <div class="card-header"><h2>👤 账号管理</h2></div>
+                        <div class="card-body" id="account-section"></div>
+                    </div>
+                </aside>
             </div>
 
-            <!-- 修改记录 -->
-            <div class="card">
-                <div class="card-header"><h2>📝 修改记录</h2></div>
-                <div class="card-body" id="logs-section">
-                    <div class="loading"><div class="spinner"></div> 加载中...</div>
-                </div>
-            </div>
         </div>
     </main>
 </div>

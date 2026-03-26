@@ -7,6 +7,8 @@
 - 📤 **文件导入** — 支持 Excel (.xlsx/.xls) 和 Word (.docx) 格式
 - 🔍 **智能识别** — 自动识别字段，未知字段自动扩展
 - 🔄 **数据合并** — 按身份证号→手机号→姓名去重，不覆盖已有数据
+- 🧭 **导入预览** — 导入前可预览“新增/更新/跳过”影响，不落库
+- ⚙️ **冲突策略** — 支持补全缺失、覆盖已有、跳过重复三种导入策略
 - 📊 **统计分析** — 性别、年龄、学历、政治面貌的可视化图表
 - 🏷️ **标签系统** — 自定义标签（如：班主任、骨干教师等）
 - 📥 **数据导出** — 将筛选结果导出为 Excel
@@ -25,6 +27,8 @@ chmod +x run.sh
 ./run.sh
 ```
 
+> 如果提示端口 8000 被占用，请先停止已有进程后重试。
+
 ### Windows
 
 双击运行 `run.bat`
@@ -40,6 +44,10 @@ python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 启动后访问: **http://localhost:8000**
+
+默认管理员账号（首次初始化）：
+- 用户名：`admin`
+- 密码：`admin123`
 
 ## 📂 项目结构
 
@@ -103,5 +111,6 @@ python generate_test_data.py
 | `/api/teachers/{id}` | PUT | 更新教师信息 |
 | `/api/teachers/{id}` | DELETE | 删除教师 |
 | `/api/upload/` | POST | 上传并解析文件 |
+| `/api/upload/preview` | POST | 预览导入影响（不写库） |
 | `/api/stats/` | GET | 获取统计数据 |
 | `/api/export/excel` | GET | 导出 Excel |

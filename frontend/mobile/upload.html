@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>移动端导入</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="m-body">
+<div class="m-shell">
+    <header class="m-topbar">
+        <h1>数据导入</h1>
+        <button class="btn btn-outline btn-sm" onclick="window.location.href='/m'">列表</button>
+    </header>
+    <main class="m-content">
+        <div class="card">
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label">导入策略</label>
+                    <select class="form-control" id="m-policy">
+                        <option value="fill_missing">仅补全缺失</option>
+                        <option value="overwrite">覆盖已有</option>
+                        <option value="skip_existing">跳过重复</option>
+                    </select>
+                </div>
+                <input id="m-file" type="file" class="form-control" accept=".xlsx,.xls,.docx,.doc">
+                <button class="btn btn-primary mt-16" onclick="mobileUpload()">开始导入</button>
+                <div id="m-upload-result" class="mt-16 text-muted"></div>
+            </div>
+        </div>
+    </main>
+    <nav class="m-tabbar">
+        <a href="/m">列表</a>
+        <a href="/m/upload" class="active">导入</a>
+        <a href="/m/stats">统计</a>
+    </nav>
+</div>
+<script src="/js/mobile-common.js"></script>
+<script src="/js/mobile-upload.js"></script>
+</body>
+</html>

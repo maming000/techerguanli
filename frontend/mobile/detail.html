@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>移动端详情</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="m-body">
+<div class="m-shell">
+    <header class="m-topbar">
+        <button class="btn btn-outline btn-sm" onclick="history.back()">返回</button>
+        <h1 id="m-name">教师详情</h1>
+        <button class="btn btn-outline btn-sm" onclick="window.location.href='/m'">列表</button>
+    </header>
+    <main class="m-content">
+        <div class="card">
+            <div class="card-body" id="m-detail"></div>
+        </div>
+    </main>
+</div>
+<script src="/js/mobile-common.js"></script>
+<script src="/js/mobile-detail.js"></script>
+</body>
+</html>
