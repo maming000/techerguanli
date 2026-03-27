@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>移动端统计</title>
     <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body class="m-body">
 <div class="m-shell">
@@ -14,6 +15,32 @@
     </header>
     <main class="m-content">
         <div class="stats-grid" id="m-stats-grid"></div>
+        <div class="m-chart-stack mt-12">
+            <section class="card m-chart-card">
+                <div class="card-header"><h2>性别分布</h2></div>
+                <div class="card-body m-chart-body"><canvas id="m-gender-chart"></canvas></div>
+            </section>
+            <section class="card m-chart-card">
+                <div class="card-header"><h2>年龄分布</h2></div>
+                <div class="card-body m-chart-body"><canvas id="m-age-chart"></canvas></div>
+            </section>
+            <section class="card m-chart-card">
+                <div class="card-header"><h2>学科分布（Top8）</h2></div>
+                <div class="card-body m-chart-body"><canvas id="m-subject-chart"></canvas></div>
+            </section>
+            <section class="card m-chart-card">
+                <div class="card-header"><h2>工龄分布</h2></div>
+                <div class="card-body m-chart-body"><canvas id="m-workyears-chart"></canvas></div>
+            </section>
+            <section class="card m-chart-card">
+                <div class="card-header"><h2>职称排行榜</h2></div>
+                <div class="card-body" id="m-title-rank"></div>
+            </section>
+            <section class="card m-chart-card">
+                <div class="card-header"><h2>标签统计</h2></div>
+                <div class="card-body" id="m-tag-stats"></div>
+            </section>
+        </div>
     </main>
     <nav class="m-tabbar">
         <a href="/m">列表</a>

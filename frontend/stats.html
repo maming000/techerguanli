@@ -65,6 +65,34 @@
                         <p>平均年龄</p>
                     </div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">🧭</div>
+                    <div class="stat-info">
+                        <h3 id="subject-count">-</h3>
+                        <p>学科覆盖数</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon cyan">🏅</div>
+                    <div class="stat-info">
+                        <h3 id="senior-title-count">-</h3>
+                        <p>高级职称人数</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon indigo">🎯</div>
+                    <div class="stat-info">
+                        <h3 id="under35-count">-</h3>
+                        <p>35岁以下人数</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon pink">🧩</div>
+                    <div class="stat-info">
+                        <h3 id="party-rate">-</h3>
+                        <p>党员占比</p>
+                    </div>
+                </div>
             </div>
 
             <!-- 图表 -->
@@ -92,6 +120,58 @@
                     <div class="card-body" style="height: 300px;">
                         <canvas id="political-chart"></canvas>
                     </div>
+                </div>
+                <div class="chart-card">
+                    <div class="card-header"><h2>🧑‍🏫 职称分布（Top10）</h2></div>
+                    <div class="card-body" style="height: 320px;">
+                        <canvas id="title-chart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="card-header"><h2>📚 任教学科分布（Top12）</h2></div>
+                    <div class="card-body" style="height: 320px;">
+                        <canvas id="subject-chart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="card-header"><h2>📆 工龄分布</h2></div>
+                    <div class="card-body" style="height: 300px;">
+                        <canvas id="work-years-chart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="card-header"><h2>🕒 入职年份趋势</h2></div>
+                    <div class="card-body" style="height: 300px;">
+                        <canvas id="hire-year-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-grid mt-24">
+                <div class="chart-card">
+                    <div class="card-header"><h2>🥇 学科人数排行榜</h2></div>
+                    <div class="card-body" id="subject-top-list">
+                        <div class="loading"><div class="spinner"></div> 加载中...</div>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="card-header"><h2>🏅 职称人数排行榜</h2></div>
+                    <div class="card-body" id="title-top-list">
+                        <div class="loading"><div class="spinner"></div> 加载中...</div>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="card-header"><h2>🏫 毕业院校 Top10</h2></div>
+                    <div class="card-body" id="school-top-list">
+                        <div class="loading"><div class="spinner"></div> 加载中...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-24">
+                <div class="card-header"><h2>🧪 数据完整度</h2></div>
+                <div class="card-body" id="completeness-stats">
+                    <div class="loading"><div class="spinner"></div> 加载中...</div>
                 </div>
             </div>
 

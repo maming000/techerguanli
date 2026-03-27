@@ -261,6 +261,10 @@ a:hover {
 .stat-icon.green { background: var(--success-bg); color: var(--success); }
 .stat-icon.orange { background: var(--warning-bg); color: var(--warning); }
 .stat-icon.red { background: var(--danger-bg); color: var(--danger); }
+.stat-icon.purple { background: #f3e8ff; color: #7c3aed; }
+.stat-icon.cyan { background: #ecfeff; color: #0e7490; }
+.stat-icon.indigo { background: #eef2ff; color: #4338ca; }
+.stat-icon.pink { background: #fdf2f8; color: #db2777; }
 
 .stat-info h3 {
     font-size: 28px;
@@ -1599,6 +1603,94 @@ select.form-control {
     padding: 20px;
 }
 
+.m-chart-stack {
+    display: grid;
+    gap: 12px;
+}
+
+.m-chart-card .card-header {
+    padding: 12px 14px;
+}
+
+.m-chart-card .card-header h2 {
+    font-size: 15px;
+}
+
+.m-chart-body {
+    height: 240px;
+    padding: 12px 14px;
+}
+
+.rank-list {
+    display: grid;
+    gap: 12px;
+}
+
+.rank-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.rank-index {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: #e8f0ff;
+    color: #1d4ed8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex: 0 0 auto;
+}
+
+.rank-main {
+    flex: 1 1 auto;
+}
+
+.rank-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.rank-name {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.rank-count {
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.quality-grid {
+    display: grid;
+    gap: 14px;
+}
+
+.quality-row {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #fbfdff;
+}
+
+.quality-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
 /* ===================== Loading ===================== */
 .loading {
     display: flex;
@@ -1779,10 +1871,12 @@ select.form-control {
 .m-body-cyber {
     margin: 0;
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     justify-content: center;
-    align-items: flex-start;
-    padding: 8px 0 24px;
+    align-items: stretch;
+    padding: 0;
+    overflow: hidden;
     font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background:
         radial-gradient(780px 320px at 50% -6%, rgba(0, 255, 255, 0.16), transparent 60%),
@@ -1793,11 +1887,17 @@ select.form-control {
 
 .m-body-cyber .m-shell {
     width: min(430px, calc(100vw - 8px));
-    min-height: calc(100vh - 16px);
+    min-height: 100vh;
+    min-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
     border-radius: 36px;
-    padding: 10px 8px 12px;
+    padding: 10px 8px 20px;
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
     border: 2px solid #1d2f47;
     background:
         linear-gradient(160deg, #08121f 0%, #070f1c 58%, #060d19 100%);

@@ -194,13 +194,19 @@ def init_database():
         )
 
     # 初始化默认浏览账号（只读）
-    cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'viewer'")
-    has_viewer = cursor.fetchone()[0] > 0
-    if not has_viewer:
-        from backend.services.auth_utils import hash_password
+    from backend.services.auth_utils import hash_password
+    viewer_row = cursor.execute(
+        "SELECT id FROM users WHERE role = 'viewer' ORDER BY id LIMIT 1"
+    ).fetchone()
+    if not viewer_row:
         cursor.execute(
             "INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'viewer')",
-            ("viewer", hash_password("viewer123"))
+            ("kan", hash_password("123"))
+        )
+    else:
+        cursor.execute(
+            "UPDATE users SET username = ?, password_hash = ? WHERE id = ?",
+            ("kan", hash_password("123"), viewer_row["id"])
         )
 
     conn.commit()
