@@ -6,20 +6,19 @@
     <title>移动端详情</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
-<body class="m-body">
+<body class="m-body m-body-cyber">
 <div class="m-shell">
-    <header class="m-topbar">
+    <header class="m-topbar m-topbar-cyber">
         <button class="btn btn-outline btn-sm" onclick="history.back()">返回</button>
         <h1 id="m-name">教师详情</h1>
         <button class="btn btn-outline btn-sm" onclick="window.location.href='/m'">列表</button>
     </header>
     <main class="m-content">
-        <div class="card">
-            <div class="card-body" id="m-detail"></div>
-        </div>
+        <div id="m-detail"></div>
     </main>
 </div>
 <script src="/js/mobile-common.js"></script>
+<script src="/js/teacher-schema.js?v=20260327_03"></script>
 <script src="/js/mobile-detail.js"></script>
 </body>
 </html>

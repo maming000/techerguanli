@@ -12,6 +12,8 @@ venv/
 
 # Sensitive / data
 /database/*.db
+/database/*.db-shm
+/database/*.db-wal
 /uploads/
 /exports/
 /test_data/

@@ -14,7 +14,6 @@ from backend.database import get_connection
 
 TOKEN_TTL_DAYS = 7
 PBKDF2_ROUNDS = 120_000
-MIN_PASSWORD_LEN = 8
 
 
 def _now_utc_str() -> str:
@@ -29,8 +28,8 @@ def hash_password(password: str) -> str:
 
 def validate_password_strength(password: str):
     pwd = (password or "").strip()
-    if len(pwd) < MIN_PASSWORD_LEN:
-        raise HTTPException(status_code=400, detail=f"密码长度至少 {MIN_PASSWORD_LEN} 位")
+    if len(pwd) < 1:
+        raise HTTPException(status_code=400, detail="密码不能为空")
 
 
 def verify_password(stored: str, password: str) -> bool:

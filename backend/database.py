@@ -113,6 +113,17 @@ def init_database():
         )
     """)
 
+    # 登录限流（按 IP）
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS login_rate_limits (
+            ip TEXT PRIMARY KEY,
+            failed_count INTEGER NOT NULL DEFAULT 0,
+            window_start_ts INTEGER,
+            blocked_until_ts INTEGER,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     # 教师改动审核请求
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS teacher_change_requests (
@@ -141,6 +152,7 @@ def init_database():
     cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_teacher_id ON users(teacher_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_change_requests_status ON teacher_change_requests(status)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_change_requests_teacher_id ON teacher_change_requests(teacher_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_login_rate_limits_blocked_until ON login_rate_limits(blocked_until_ts)")
 
     # 初始化内置字段注册
     builtin_fields = [

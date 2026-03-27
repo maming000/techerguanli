@@ -1,7 +1,8 @@
 """
 登录与会话管理
 """
-from fastapi import APIRouter, HTTPException, Depends, Header
+import time
+from fastapi import APIRouter, HTTPException, Depends, Header, Request
 from pydantic import BaseModel
 from backend.database import get_connection
 from backend.services.auth_utils import (
@@ -15,6 +16,10 @@ from backend.services.auth_utils import (
 )
 
 router = APIRouter(prefix="/api/auth", tags=["认证"])
+
+LOGIN_FAIL_WINDOW_SECONDS = 3 * 60
+LOGIN_FAIL_MAX = 5
+LOGIN_BLOCK_SECONDS = 4 * 60 * 60
 
 
 class LoginRequest(BaseModel):
@@ -33,19 +38,124 @@ class ForgotPasswordRequest(BaseModel):
     new_password: str
 
 
+def get_client_ip(request: Request) -> str:
+    # 兼容 Nginx/宝塔反代场景
+    xff = (request.headers.get("x-forwarded-for") or "").strip()
+    if xff:
+        first = xff.split(",")[0].strip()
+        if first:
+            return first
+    x_real_ip = (request.headers.get("x-real-ip") or "").strip()
+    if x_real_ip:
+        return x_real_ip
+    if request.client and request.client.host:
+        return request.client.host
+    return "unknown"
+
+
+def get_ip_limit_row(conn, ip: str) -> dict | None:
+    row = conn.execute(
+        "SELECT ip, failed_count, window_start_ts, blocked_until_ts FROM login_rate_limits WHERE ip = ?",
+        (ip,),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def clear_ip_failures(conn, ip: str) -> None:
+    conn.execute(
+        "INSERT INTO login_rate_limits (ip, failed_count, window_start_ts, blocked_until_ts, updated_at) "
+        "VALUES (?, 0, NULL, NULL, CURRENT_TIMESTAMP) "
+        "ON CONFLICT(ip) DO UPDATE SET failed_count = 0, window_start_ts = NULL, blocked_until_ts = NULL, updated_at = CURRENT_TIMESTAMP",
+        (ip,),
+    )
+
+
+def record_ip_failure(conn, ip: str, now_ts: int) -> tuple[bool, int]:
+    """
+    记录失败并返回：
+    - is_blocked_now: 是否在本次失败后触发封禁
+    - blocked_until_ts: 封禁截至时间（未封禁则为 0）
+    """
+    row = get_ip_limit_row(conn, ip)
+    if not row:
+        conn.execute(
+            "INSERT INTO login_rate_limits (ip, failed_count, window_start_ts, blocked_until_ts, updated_at) "
+            "VALUES (?, 1, ?, NULL, CURRENT_TIMESTAMP)",
+            (ip, now_ts),
+        )
+        return False, 0
+
+    window_start = row.get("window_start_ts")
+    failed_count = int(row.get("failed_count") or 0)
+    blocked_until = int(row.get("blocked_until_ts") or 0)
+
+    # 已过封禁时间：先清状态再按新失败计
+    if blocked_until and now_ts >= blocked_until:
+        failed_count = 0
+        window_start = None
+        blocked_until = 0
+
+    # 超过失败统计窗口：重置为新的窗口
+    if not window_start or (now_ts - int(window_start)) > LOGIN_FAIL_WINDOW_SECONDS:
+        failed_count = 1
+        window_start = now_ts
+    else:
+        failed_count += 1
+
+    trigger_block = failed_count >= LOGIN_FAIL_MAX and (now_ts - int(window_start)) <= LOGIN_FAIL_WINDOW_SECONDS
+    if trigger_block:
+        blocked_until = now_ts + LOGIN_BLOCK_SECONDS
+        conn.execute(
+            "UPDATE login_rate_limits SET failed_count = ?, window_start_ts = ?, blocked_until_ts = ?, updated_at = CURRENT_TIMESTAMP WHERE ip = ?",
+            (failed_count, window_start, blocked_until, ip),
+        )
+        return True, blocked_until
+
+    conn.execute(
+        "UPDATE login_rate_limits SET failed_count = ?, window_start_ts = ?, blocked_until_ts = NULL, updated_at = CURRENT_TIMESTAMP WHERE ip = ?",
+        (failed_count, window_start, ip),
+    )
+    return False, 0
+
+
 @router.post("/login")
-async def login(data: LoginRequest):
+async def login(data: LoginRequest, request: Request):
     conn = get_connection()
     try:
+        now_ts = int(time.time())
+        client_ip = get_client_ip(request)
+        ip_limit = get_ip_limit_row(conn, client_ip)
+        blocked_until = int((ip_limit or {}).get("blocked_until_ts") or 0)
+        if blocked_until and now_ts < blocked_until:
+            remain_seconds = blocked_until - now_ts
+            remain_minutes = max(1, (remain_seconds + 59) // 60)
+            raise HTTPException(
+                status_code=429,
+                detail=f"该IP登录失败次数过多，已被限制登录。请约{remain_minutes}分钟后再试。"
+            )
+
         row = conn.execute(
             "SELECT * FROM users WHERE username = ?",
             (data.username.strip(),)
         ).fetchone()
         if not row:
+            blocked, blocked_until_ts = record_ip_failure(conn, client_ip, now_ts)
+            conn.commit()
+            if blocked:
+                remain_minutes = max(1, (blocked_until_ts - now_ts + 59) // 60)
+                raise HTTPException(status_code=429, detail=f"该IP登录失败次数过多，已被限制登录。请约{remain_minutes}分钟后再试。")
             raise HTTPException(status_code=401, detail="用户名或密码错误")
         user = dict(row)
         if not verify_password(user["password_hash"], data.password):
+            blocked, blocked_until_ts = record_ip_failure(conn, client_ip, now_ts)
+            conn.commit()
+            if blocked:
+                remain_minutes = max(1, (blocked_until_ts - now_ts + 59) // 60)
+                raise HTTPException(status_code=429, detail=f"该IP登录失败次数过多，已被限制登录。请约{remain_minutes}分钟后再试。")
             raise HTTPException(status_code=401, detail="用户名或密码错误")
+
+        clear_ip_failures(conn, client_ip)
+        conn.commit()
         token = create_session(user["id"])
         teacher_name = None
         if user.get("teacher_id"):

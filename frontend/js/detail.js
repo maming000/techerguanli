@@ -5,21 +5,23 @@
 let currentTeacher = null;
 let currentUser = null;
 let teacherAccount = null;
+let openEditOnLoad = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
+    openEditOnLoad = window.location.hash === '#edit' || params.get('auto_edit') === '1';
     if (id) {
         initUserAndLoad(id);
     } else {
-        document.getElementById('detail-content').innerHTML =
-            '<div class="empty-state"><div class="empty-icon">🔍</div><h3>未指定教师</h3><p>请从首页选择一个教师查看详情</p></div>';
+        renderPageError('未指定教师', '请从首页选择一个教师查看详情');
     }
     const avatarInput = document.getElementById('avatar-input');
     if (avatarInput) {
         avatarInput.addEventListener('change', uploadAvatar);
     }
-    initHeroTilt();
+    initDetailClock();
+    initCollapseButtons();
 });
 
 async function initUserAndLoad(id) {
@@ -55,10 +57,32 @@ async function loadTeacher(id) {
         updateHeaderActions();
         await loadTeacherAccount();
         renderAccountSection();
+        tryOpenEditFromUrl();
     } catch (e) {
-        document.getElementById('detail-content').innerHTML =
-            `<div class="empty-state"><div class="empty-icon">❌</div><h3>加载失败</h3><p>${e.message}</p></div>`;
+        renderPageError('加载失败', e.message || '请求异常');
     }
+}
+
+function renderPageError(title, msg) {
+    const target = document.getElementById('center-basic-grid')
+        || document.getElementById('right-work-grid')
+        || document.querySelector('.detail-cyber-content')
+        || document.body;
+    target.innerHTML = `<div class="empty-state"><div class="empty-icon">❌</div><h3>${title}</h3><p>${msg}</p></div>`;
+}
+
+function canEditCurrentTeacher() {
+    if (!currentUser || !currentTeacher) return false;
+    if (currentUser.role === 'admin') return true;
+    if (currentUser.role === 'teacher' && currentUser.teacher_id === currentTeacher.id) return true;
+    return false;
+}
+
+function tryOpenEditFromUrl() {
+    if (!openEditOnLoad) return;
+    openEditOnLoad = false;
+    if (!canEditCurrentTeacher()) return;
+    showEditModal();
 }
 
 async function loadTeacherAccount() {
@@ -70,67 +94,159 @@ async function loadTeacherAccount() {
 }
 
 function renderDetail(t) {
-    const groups = [
-        {
-            title: '身份信息',
-            fields: [
-                ['name', '姓名'], ['gender', '性别'], ['id_card', '身份证号'],
-                ['birth_date', '出生日期'], ['age', '年龄'], ['ethnicity', '民族'], ['native_place', '籍贯']
-            ]
-        },
-        {
-            title: '联系方式',
-            fields: [
-                ['mobile', '手机'], ['phone', '联系电话'], ['short_phone', '小号'],
-                ['address', '家庭住址'], ['email', '邮箱']
-            ]
-        },
-        {
-            title: '任职信息',
-            fields: [
-                ['graduate_school', '毕业院校'], ['education', '学历'], ['political_status', '政治面貌'],
-                ['title', '职称'], ['position', '职务'], ['subject', '任教学科'],
-                ['hire_date', '入职日期'], ['employee_id', '工号']
-            ]
-        }
-    ];
+    const schema = window.TeacherSchema;
+    const data = schema ? schema.normalizeTeacher(t) : t;
+    const isFilled = schema ? schema.isFilled : (val) => !!val;
+    const display = schema ? schema.display : (val) => (val || '-');
 
-    let detailHtml = '';
-    groups.forEach((group) => {
-        detailHtml += `<section class="detail-section-card mb-16"><h3 class="detail-section-title">${group.title}</h3><div class="detail-grid">`;
-        group.fields.forEach(([key, label]) => {
-            detailHtml += `
-                <div class="detail-item">
-                    <span class="detail-label">${label}</span>
-                    <span class="detail-value">${t[key] || '-'}</span>
-                </div>`;
-        });
-        detailHtml += '</div></section>';
-    });
-
-    if (t.extra_fields && Object.keys(t.extra_fields).length > 0) {
-        detailHtml += '<section class="detail-section-card"><h3 class="detail-section-title">扩展信息</h3><div class="detail-grid">';
-        for (const [key, val] of Object.entries(t.extra_fields)) {
-            if (key.startsWith('__profile_')) continue;
-            detailHtml += `
-                <div class="detail-item">
-                    <span class="detail-label">${key}</span>
-                    <span class="detail-value">${val || '-'}</span>
-                </div>`;
+    const profileColor = getCoverColor(t);
+    const avatarUrl = getAvatarUrl(t);
+    const initials = (data.name || '?').slice(0, 1);
+    const avatarSlot = document.getElementById('hero-avatar-slot');
+    if (avatarSlot) {
+        avatarSlot.innerHTML = avatarUrl
+            ? `<img class="detail-cyber-avatar" src="${avatarUrl}" alt="${display(data.name)}">`
+            : `<div class="detail-cyber-avatar-placeholder">${initials}</div>`;
+    }
+    const profileHero = document.getElementById('profile-hero');
+    if (profileHero) {
+        const isMedical = document.body.classList.contains('detail-medical-page');
+        if (isMedical) {
+            // 医生版保持稳定浅底，避免深色封面导致姓名不可读。
+            profileHero.style.background = 'linear-gradient(180deg, #fbfdff 0%, #eff5fc 100%)';
+            profileHero.style.borderBottomColor = '#dce5f0';
+            profileHero.style.boxShadow = `inset 0 3px 0 ${lightenHex(profileColor, 0.65)}`;
+        } else {
+            profileHero.style.background = `linear-gradient(140deg, ${profileColor}, #1a2f5b)`;
+            profileHero.style.borderBottomColor = '';
+            profileHero.style.boxShadow = '';
         }
-        detailHtml += '</div></section>';
     }
 
-    document.getElementById('detail-content').innerHTML = detailHtml;
+    const nameText = document.getElementById('teacher-name-text');
+    if (nameText) nameText.textContent = data.name || '教师详情';
+    const metaText = document.getElementById('teacher-meta');
+    if (metaText) metaText.textContent = `${data.name || '未知教师'} | 教师详情页`;
+
+    const leftOverview = document.getElementById('left-overview-grid');
+    const leftRows = [
+        ['性别', data.gender],
+        ['职称', data.title],
+        ['任教学科', data.subject],
+        ['入职日期', data.hire_date],
+        ['状态', t?.extra_fields?.status || '在职']
+    ].filter(([, v]) => isFilled(v)).map(([k, v]) => renderKV(k, display(v), true)).join('');
+    if (leftOverview) leftOverview.innerHTML = leftRows || '<div class="text-muted">暂无概览信息</div>';
+
+    const basicFields = [
+        ['身份证号', data.id_card],
+        ['手机', data.mobile],
+        ['小号', data.short_phone],
+        ['出生日期', data.birth_date],
+        ['年龄', data.age],
+        ['民族', data.ethnicity],
+        ['政治面貌', data.political_status],
+        ['籍贯', data.native_place],
+        ['户籍所在地', pickExtra(t, ['户籍所在地', '户籍地'])],
+        ['邮箱 / 电子邮件', data.email],
+        ['联系方式', data.phone],
+        ['档案编号', data.archive_no],
+        ['地址', data.address]
+    ];
+    fillGrid('center-basic-grid', basicFields, ['地址', '户籍所在地', '联系方式', '邮箱 / 电子邮件'], isFilled, display);
+
+    const eduFields = [
+        ['毕业院校', data.graduate_school],
+        ['学历', data.education],
+        ['专业', data.major],
+        ['毕业时间', pickExtra(t, ['毕业时间'])],
+        ['毕业年度', pickExtra(t, ['毕业年度'])],
+        ['是否师范类', pickExtra(t, ['是否师范类'])],
+        ['是否省内毕业生', pickExtra(t, ['是否省内毕业生', '是否省内毕业'])]
+    ];
+    fillGrid('right-education-grid', eduFields, [], isFilled, display);
+
+    const workFields = [
+        ['工号', data.employee_id],
+        ['职称', data.title],
+        ['任教学科', data.subject],
+        ['入职日期', data.hire_date],
+        ['原单位', pickExtra(t, ['原单位'])],
+        ['参工时间', data.civil_service_date],
+        ['参加工作时间', pickExtra(t, ['参加工作时间'])],
+        ['支教或调入', pickExtra(t, ['支教或调入'])],
+        ['入党时间', data.party_join_date]
+    ];
+    fillGrid('right-work-grid', workFields, [], isFilled, display);
+
+    const extraBox = document.getElementById('right-extra-content');
+    if (extraBox) {
+        const plate1 = display(data.plate_no_1);
+        const plate2 = display(data.plate_no_2);
+        const honors = display(pickExtra(t, ['在校或工作中曾获得荣誉', '在校或在工作', '荣誉']));
+        const known = new Set(['__profile_avatar', '__profile_cover_color', 'status', '户籍所在地', '户籍地', '毕业时间', '毕业年度', '是否师范类', '是否省内毕业生', '是否省内毕业', '原单位', '参加工作时间', '支教或调入', '在校或工作中曾获得荣誉', '在校或在工作', '荣誉']);
+        const extraTags = Object.entries(t.extra_fields || {})
+            .filter(([k, v]) => !known.has(k) && isFilled(v))
+            .map(([k, v]) => `<span class="detail-cyber-extra-tag">${k}：${display(v)}</span>`)
+            .join('');
+        extraBox.innerHTML = `
+            <div class="detail-cyber-form-grid detail-cyber-two-col">
+                ${renderKV('车牌号码1', plate1)}
+                ${renderKV('车牌号码2', plate2)}
+            </div>
+            <div class="detail-cyber-honor-box">
+                <div class="detail-cyber-honor-title">在校或工作中曾获得荣誉</div>
+                <div class="detail-cyber-honor-scroll">${honors}</div>
+            </div>
+            ${extraTags ? `<div class="detail-cyber-extra-tags">${extraTags}</div>` : ''}
+        `;
+    }
 
     // 标签
     renderTagsSection(t);
-    renderProfileHero(t);
+}
 
-    // 更新页面标题
-    document.getElementById('teacher-name').textContent = t.name || '未知教师';
-    document.getElementById('teacher-meta').textContent =
-        `ID: ${t.id} | 创建: ${formatDate(t.created_at)} | 更新: ${formatDate(t.updated_at)}`;
+function pickExtra(t, keys) {
+    const extra = t?.extra_fields || {};
+    for (const k of keys) {
+        if (extra[k] !== undefined && extra[k] !== null && String(extra[k]).trim() !== '') return extra[k];
+    }
+    return '';
+}
+
+function lightenHex(hex, ratio = 0.8) {
+    const m = String(hex || '').trim().match(/^#([0-9a-fA-F]{6})$/);
+    if (!m) return '#f4f8fe';
+    const raw = m[1];
+    const r = parseInt(raw.slice(0, 2), 16);
+    const g = parseInt(raw.slice(2, 4), 16);
+    const b = parseInt(raw.slice(4, 6), 16);
+    const blend = (v) => Math.round(v + (255 - v) * Math.max(0, Math.min(1, ratio)));
+    const toHex = (v) => blend(v).toString(16).padStart(2, '0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function renderKV(label, value, compact = false) {
+    return `<div class="detail-cyber-kv ${compact ? 'compact' : ''}">
+        <span class="detail-cyber-k">${label}</span>
+        <span class="detail-cyber-v">${value || '-'}</span>
+    </div>`;
+}
+
+function fillGrid(containerId, rows, fullLineLabels, isFilled, display) {
+    const box = document.getElementById(containerId);
+    if (!box) return;
+    const html = rows
+        .filter(([, v]) => isFilled(v))
+        .map(([k, v]) => {
+            const full = fullLineLabels.includes(k) ? ' full' : '';
+            return `<div class="detail-cyber-kv${full}">
+                <span class="detail-cyber-k">${k}</span>
+                <span class="detail-cyber-v">${display(v)}</span>
+            </div>`;
+        })
+        .join('');
+    box.innerHTML = html || '<div class="text-muted">暂无信息</div>';
 }
 
 function getCoverColor(t) {
@@ -141,36 +257,16 @@ function getAvatarUrl(t) {
     return t?.extra_fields?.__profile_avatar || '';
 }
 
-function renderProfileHero(t) {
-    const hero = document.getElementById('profile-hero');
-    const avatarSlot = document.getElementById('hero-avatar-slot');
-    if (!hero || !avatarSlot) return;
-    const color = getCoverColor(t);
-    hero.style.background = `linear-gradient(135deg, ${color} 0%, #0f2e63 100%)`;
-    const avatar = getAvatarUrl(t);
-    if (avatar) {
-        avatarSlot.innerHTML = `<img class="profile-avatar" src="${avatar}" alt="${t.name || ''}">`;
-    } else {
-        avatarSlot.innerHTML = `<div class="profile-avatar-placeholder">${(t.name || '?').slice(0, 1)}</div>`;
-    }
+function initHeroTilt() {
+    // reserved
 }
 
-function initHeroTilt() {
-    const hero = document.getElementById('profile-hero');
-    if (!hero) return;
+function initCardParallax() {
+    // 已按需求关闭鼠标悬停歪斜效果
+}
 
-    hero.addEventListener('mousemove', (e) => {
-        const rect = hero.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const rx = ((y / rect.height) - 0.5) * -3.2;
-        const ry = ((x / rect.width) - 0.5) * 4.5;
-        hero.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg)`;
-    });
-
-    hero.addEventListener('mouseleave', () => {
-        hero.style.transform = 'perspective(1000px) rotateX(2deg)';
-    });
+function playTitleBurst() {
+    // removed for cleaner UI
 }
 
 function renderTagsSection(t) {
@@ -178,7 +274,7 @@ function renderTagsSection(t) {
     const tags = t.tags || [];
     const colors = ['primary', 'success', 'warning', 'danger'];
 
-    let html = '<div class="flex items-center gap-8" style="flex-wrap: wrap;">';
+    let html = '<div class="detail-cyber-tag-row">';
     tags.forEach((tag, i) => {
         html += `<span class="tag tag-${colors[i % colors.length]}">
             ${tag}
@@ -439,6 +535,7 @@ function renderAccountSection() {
         </div>
         <p class="text-muted mt-8" style="font-size: 12px;">账号将绑定当前教师。</p>
     `;
+    refreshScrollReveal();
 }
 
 async function createTeacherAccount() {
@@ -494,24 +591,55 @@ function renderLogs(logs) {
         return;
     }
 
-    let html = '<div class="timeline">';
+    let html = '<div class="detail-cyber-log-list">';
     for (const log of logs) {
         html += `
-            <div class="timeline-item">
-                <span class="timeline-dot"></span>
-                <div class="timeline-title">
+            <div class="detail-cyber-log-item">
+                <div class="detail-cyber-log-head">
                     <span class="tag tag-primary">${log.action}</span>
-                    <span class="timeline-field">${log.field_name || '系统记录'}</span>
+                    <span class="detail-cyber-k">${log.field_name || '系统记录'}</span>
                     <span class="text-muted">${formatDate(log.created_at)}</span>
                 </div>
-                <div class="timeline-values">
-                    <div class="timeline-box"><strong>旧值：</strong>${log.old_value || '-'}</div>
-                    <div class="timeline-box"><strong>新值：</strong>${log.new_value || '-'}</div>
+                <div class="detail-cyber-log-values">
+                    <div><strong>旧值：</strong>${log.old_value || '-'}</div>
+                    <div><strong>新值：</strong>${log.new_value || '-'}</div>
                 </div>
             </div>`;
     }
     html += '</div>';
     container.innerHTML = html;
+}
+
+function initScrollReveal() {
+    // removed for cleaner UI
+}
+
+function refreshScrollReveal() {
+    // removed for cleaner UI
+}
+
+function initDetailClock() {
+    const el = document.getElementById('detail-current-time');
+    if (!el) return;
+    const tick = () => {
+        const d = new Date();
+        el.textContent = d.toLocaleString('zh-CN', { hour12: false });
+    };
+    tick();
+    setInterval(tick, 1000);
+}
+
+function initCollapseButtons() {
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.detail-collapse-btn');
+        if (!btn) return;
+        const targetId = btn.getAttribute('data-target');
+        if (!targetId) return;
+        const panel = document.getElementById(targetId);
+        if (!panel) return;
+        panel.classList.toggle('is-collapsed');
+        btn.textContent = panel.classList.contains('is-collapsed') ? '展开' : '折叠';
+    });
 }
 
 async function uploadAvatar(e) {

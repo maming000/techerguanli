@@ -146,26 +146,21 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function redirectToStandaloneMobile() {
-    const path = window.location.pathname;
-    if (!isMobileViewport()) return false;
-    if (path.startsWith('/m')) return false;
-    if (path.startsWith('/api')) return false;
-    if (new URLSearchParams(window.location.search).get('desktop') === '1') return false;
-
-    const query = window.location.search || '';
-    let target = '/m';
-    if (path === '/upload') target = '/m/upload';
-    else if (path === '/stats') target = '/m/stats';
-    else if (path === '/detail') target = '/m/detail' + query;
-    else if (path === '/login') target = '/m/login';
-    else target = '/m';
-
-    window.location.replace(target);
-    return true;
+    // 保持桌面端路由稳定：不再做自动移动端重定向
+    return false;
 }
 
 function isMobileViewport() {
     return window.matchMedia('(max-width: 768px)').matches;
+}
+
+function isMobileUserAgent() {
+    const ua = (navigator.userAgent || '').toLowerCase();
+    return /android|iphone|ipad|ipod|mobile|windows phone|harmonyos/.test(ua);
+}
+
+function shouldUseStandaloneMobile() {
+    return isMobileViewport() && isMobileUserAgent();
 }
 
 function getMobileNavItems() {
@@ -182,7 +177,7 @@ function initMobileShell() {
     const oldNav = document.getElementById('mobile-bottom-nav');
     if (oldNav) oldNav.remove();
 
-    if (!isMobileViewport()) {
+    if (!shouldUseStandaloneMobile()) {
         document.body.classList.remove('mobile-shell-enabled');
         return;
     }
