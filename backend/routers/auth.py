@@ -39,17 +39,17 @@ class ForgotPasswordRequest(BaseModel):
 
 
 def get_client_ip(request: Request) -> str:
-    # 兼容 Nginx/宝塔反代场景
-    xff = (request.headers.get("x-forwarded-for") or "").strip()
-    if xff:
-        first = xff.split(",")[0].strip()
-        if first:
-            return first
+    # 优先使用直连 IP，如果需要信任反代的 X-Forwarded-For，请在此处加上可信代理 IP 的判断逻辑
+    # 简单防伪造处理：如果有直连客户端 host，则将其作为底层 IP 判断依据
+    # 此处默认直接取客户端真实对端 IP。在无明确授信代理时，避免使用 x-forwarded-for。
+    if request.client and request.client.host:
+        return request.client.host
+    
+    # 兜底情况（如果在极特殊内部网络没有 request.client），可以降级取 X-Real-IP 等
     x_real_ip = (request.headers.get("x-real-ip") or "").strip()
     if x_real_ip:
         return x_real_ip
-    if request.client and request.client.host:
-        return request.client.host
+    
     return "unknown"
 
 

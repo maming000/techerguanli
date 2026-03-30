@@ -6,6 +6,19 @@ const API_BASE = '';
 let cachedUser = null;
 
 /**
+ * 字符转义，防止 XSS
+ */
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+/**
  * 封装 fetch 请求
  */
 async function api(url, options = {}) {

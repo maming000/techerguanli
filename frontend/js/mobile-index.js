@@ -23,7 +23,6 @@ function mCard(t) {
             <div class="card-body">
                 <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
                     <a href="/m/detail?id=${t.id}" style="font-weight:700;">${t.name || '-'}</a>
-                    <span class="text-muted">#${t.id}</span>
                 </div>
                 <div class="mt-8 text-muted" style="font-size:13px;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
                     <div>手机：${t.mobile || t.phone || '-'}</div>
@@ -65,7 +64,6 @@ async function loadMobileTeachers(page = 1) {
     const address = document.getElementById('m-address')?.value?.trim() || '';
     const subject = document.getElementById('m-subject')?.value?.trim() || '';
     const hireDate = document.getElementById('m-hire-date')?.value || '';
-    const tag = document.getElementById('m-tag')?.value?.trim() || '';
     const minAge = document.getElementById('m-min-age')?.value || '';
     const maxAge = document.getElementById('m-max-age')?.value || '';
     if (gender) params.set('gender', gender);
@@ -82,7 +80,6 @@ async function loadMobileTeachers(page = 1) {
     if (address) params.set('address', address);
     if (subject) params.set('subject', subject);
     if (hireDate) params.set('hire_date', hireDate);
-    if (tag) params.set('tag', tag);
     if (minAge) params.set('min_age', minAge);
     if (maxAge) params.set('max_age', maxAge);
 
@@ -136,7 +133,6 @@ function resetMobileFilters() {
     if (document.getElementById('m-address')) document.getElementById('m-address').value = '';
     if (document.getElementById('m-subject')) document.getElementById('m-subject').value = '';
     if (document.getElementById('m-hire-date')) document.getElementById('m-hire-date').value = '';
-    if (document.getElementById('m-tag')) document.getElementById('m-tag').value = '';
     if (document.getElementById('m-min-age')) document.getElementById('m-min-age').value = '';
     if (document.getElementById('m-max-age')) document.getElementById('m-max-age').value = '';
     document.querySelectorAll('#m-quick-filters [data-qf]').forEach((btn) => btn.classList.remove('active'));

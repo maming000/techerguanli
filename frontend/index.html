@@ -108,13 +108,6 @@
                         <button class="btn btn-outline" onclick="resetFilters()">重置</button>
                     </div>
                 </div>
-                <!-- 标签筛选 -->
-                <div class="filter-row mt-16" id="tag-filter-row" style="display:none;">
-                    <div style="width:100%;">
-                        <label class="form-label" style="margin-bottom:8px;">🏷️ 按标签筛选</label>
-                        <div class="btn-group" id="tag-filter-buttons"></div>
-                    </div>
-                </div>
                 <!-- 排序 + 高级筛选 -->
                 <div class="filter-row mt-16">
                     <div class="form-group" style="min-width:150px;">
@@ -237,21 +230,17 @@
                                 <th>
                                     <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
                                 </th>
-                                <th>ID</th>
                                 <th>姓名</th>
                                 <th>职级</th>
                                 <th>性别</th>
                                 <th>年龄</th>
                                 <th>手机</th>
-                                <th>职务</th>
                                 <th>学历</th>
-                                <th>资格证书</th>
-                                <th>标签</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
                         <tbody id="teacher-list">
-                            <tr><td colspan="12" class="loading"><div class="spinner"></div> 加载中...</td></tr>
+                            <tr><td colspan="8" class="loading"><div class="spinner"></div> 加载中...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -277,7 +266,6 @@
                 <div class="flex items-center gap-16" style="justify-content: space-between;">
                     <span>已选择 <strong id="selected-count">0</strong> 名教师</span>
                     <div class="btn-group">
-                        <button class="btn btn-outline btn-sm" onclick="showBatchTagModal()">批量加标签</button>
                         <button class="btn btn-danger btn-sm" onclick="batchDelete()">批量删除</button>
                     </div>
                 </div>
@@ -293,13 +281,11 @@
     let currentPageSize = 20;
     let activeFilters = {};
     let selectedIds = new Set();
-    let activeTag = '';
 
     // 页面初始化
     document.addEventListener('DOMContentLoaded', () => {
         loadTeachers();
         loadQuickStats();
-        loadTagFilters();
         loadTitleOptions();
         loadPendingApprovals();
     });
@@ -308,7 +294,7 @@
     async function loadTeachers(page = 1) {
         currentPage = page;
         document.getElementById('teacher-list').innerHTML =
-            '<tr><td colspan="12" class="loading"><div class="spinner"></div> 加载中...</td></tr>';
+            '<tr><td colspan="8" class="loading"><div class="spinner"></div> 加载中...</td></tr>';
         const params = new URLSearchParams();
         params.set('page', page);
         params.set('page_size', currentPageSize);
@@ -319,9 +305,6 @@
         if (activeFilters.political_status) params.set('political_status', activeFilters.political_status);
         if (activeFilters.max_age) params.set('max_age', activeFilters.max_age);
         if (activeFilters.min_age) params.set('min_age', activeFilters.min_age);
-
-        // 标签筛选
-        if (activeTag) params.set('tag', activeTag);
 
         // 排序
         const sortBy = document.getElementById('sort-by')?.value;
@@ -371,7 +354,7 @@
             renderTeacherList(result);
         } catch (e) {
             document.getElementById('teacher-list').innerHTML =
-                `<tr><td colspan="12" class="text-center text-muted" style="padding:40px;">加载失败</td></tr>`;
+                `<tr><td colspan="8" class="text-center text-muted" style="padding:40px;">加载失败</td></tr>`;
         }
     }
 
@@ -382,7 +365,7 @@
         const countEl = document.getElementById('filtered-count');
 
         if (result.data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="12">
+            tbody.innerHTML = `<tr><td colspan="8">
                 <div class="empty-state">
                     <div class="empty-icon">📭</div>
                     <h3>暂无教师数据</h3>
@@ -395,27 +378,18 @@
             return;
         }
 
-        const getQualification = (t) => {
-            const ex = t.extra_fields || {};
-            return ex['资格证书'] || ex['qualification'] || ex['教师资格证'] || '-';
-        };
-
         let html = '';
         result.data.forEach((t) => {
             const checked = selectedIds.has(t.id) ? 'checked' : '';
             html += `
                 <tr>
                     <td><input type="checkbox" value="${t.id}" ${checked} onchange="toggleSelect(${t.id})"></td>
-                    <td style="color:var(--text-muted); font-weight:600;">${t.id}</td>
-                    <td><a href="/detail?id=${t.id}" style="font-weight:600;">${t.name || '-'}</a></td>
-                    <td>${t.title || '-'}</td>
-                    <td>${t.gender || '-'}</td>
-                    <td>${t.age || '-'}</td>
-                    <td>${t.mobile || t.phone || '-'}</td>
-                    <td>${t.position || '-'}</td>
-                    <td>${t.education || '-'}</td>
-                    <td>${getQualification(t)}</td>
-                    <td>${renderTags(t.tags)}</td>
+                    <td><a href="/detail?id=${t.id}" style="font-weight:600;">${escapeHTML(t.name) || '-'}</a></td>
+                    <td>${escapeHTML(t.title) || '-'}</td>
+                    <td>${escapeHTML(t.gender) || '-'}</td>
+                    <td>${escapeHTML(t.age) || '-'}</td>
+                    <td>${escapeHTML(t.mobile || t.phone) || '-'}</td>
+                    <td>${escapeHTML(t.education) || '-'}</td>
                     <td><a href="/detail?id=${t.id}" class="btn btn-outline btn-sm">查看</a></td>
                 </tr>`;
         });
@@ -581,7 +555,6 @@
 
     function resetFilters() {
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tag-filter-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('search-input').value = '';
         document.getElementById('filter-gender').value = '';
         document.getElementById('filter-phone').value = '';
@@ -601,37 +574,7 @@
         document.getElementById('sort-by').value = '';
         document.getElementById('sort-order').value = 'asc';
         activeFilters = {};
-        activeTag = '';
         loadTeachers(1);
-    }
-
-    // 加载标签筛选按钮
-    async function loadTagFilters() {
-        const user = await getCurrentUser();
-        if (!user || user.role !== 'admin') return;
-        try {
-            const tagStats = await api('/api/stats/tags');
-            const container = document.getElementById('tag-filter-buttons');
-            const row = document.getElementById('tag-filter-row');
-
-            if (!tagStats || Object.keys(tagStats).length === 0) {
-                row.style.display = 'none';
-                return;
-            }
-
-            row.style.display = 'flex';
-            const colors = ['primary', 'success', 'warning', 'danger'];
-            let html = '';
-            let i = 0;
-            for (const [tag, count] of Object.entries(tagStats)) {
-                const color = colors[i % colors.length];
-                html += `<button class="btn btn-outline tag-filter-btn" data-tag="${tag}" onclick="toggleTagFilter('${tag}')" style="border-color: var(--${color}); color: var(--${color});">
-                    🏷️ ${tag} <span class="badge" style="background: var(--${color}); margin-left: 4px;">${count}</span>
-                </button>`;
-                i++;
-            }
-            container.innerHTML = html;
-        } catch (e) {}
     }
 
     // 加载职称筛选下拉选项
@@ -654,23 +597,6 @@
         } catch (e) {}
     }
 
-    // 标签筛选切换
-    function toggleTagFilter(tag) {
-        const btn = document.querySelector(`.tag-filter-btn[data-tag="${tag}"]`);
-        const isActive = btn.classList.contains('active');
-
-        // 清除所有标签筛选的高亮
-        document.querySelectorAll('.tag-filter-btn').forEach(b => b.classList.remove('active'));
-
-        if (!isActive) {
-            btn.classList.add('active');
-            activeTag = tag;
-        } else {
-            activeTag = '';
-        }
-        loadTeachers(1);
-    }
-
     // 导出
     async function exportExcel() {
         const params = new URLSearchParams();
@@ -680,7 +606,6 @@
         if (activeFilters.political_status) params.set('political_status', activeFilters.political_status);
         if (activeFilters.min_age) params.set('min_age', activeFilters.min_age);
         if (activeFilters.max_age) params.set('max_age', activeFilters.max_age);
-        if (activeTag) params.set('tag', activeTag);
         const gender = document.getElementById('filter-gender')?.value;
         if (gender && !activeFilters.gender) params.set('gender', gender);
         const phone = document.getElementById('filter-phone')?.value;

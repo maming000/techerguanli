@@ -114,7 +114,7 @@
         };
         normalized.age = pickAlias(t, ex, ['age', '年龄']) || calcAge(normalized.birth_date);
         normalized.staff_id = isFilled(t.id) ? `T${t.id}` : '';
-        normalized.role = normalized.title || normalized.position || '';
+        normalized.role = normalized.title || '';
         return normalized;
     }
 
@@ -140,7 +140,6 @@
                 { key: 'hire_date', label: '入职日期' },
                 { key: 'subject', label: '任教学科' },
                 { key: 'title', label: '职称' },
-                { key: 'position', label: '职务' },
                 { key: 'employee_id', label: '工号' },
                 { key: 'civil_service_date', label: '参公时间' },
                 { key: 'archive_no', label: '档案编号' }
@@ -154,8 +153,7 @@
                 { key: 'degree', label: '最高学位' },
                 { key: 'graduate_school', label: '毕业学校' },
                 { key: 'major', label: '专业' },
-                { key: 'party_join_date', label: '入党时间' },
-                { key: 'qualification', label: '资格证书' }
+                { key: 'party_join_date', label: '入党时间' }
             ]
         },
         {

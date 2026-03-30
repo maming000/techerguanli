@@ -184,7 +184,7 @@ function renderDetail(t) {
         const plate1 = display(data.plate_no_1);
         const plate2 = display(data.plate_no_2);
         const honors = display(pickExtra(t, ['在校或工作中曾获得荣誉', '在校或在工作', '荣誉']));
-        const known = new Set(['__profile_avatar', '__profile_cover_color', 'status', '户籍所在地', '户籍地', '毕业时间', '毕业年度', '是否师范类', '是否省内毕业生', '是否省内毕业', '原单位', '参加工作时间', '支教或调入', '在校或工作中曾获得荣誉', '在校或在工作', '荣誉']);
+        const known = new Set(['__profile_avatar', '__profile_cover_color', 'status', '户籍所在地', '户籍地', '毕业时间', '毕业年度', '是否师范类', '是否省内毕业生', '是否省内毕业', '原单位', '参加工作时间', '支教或调入', '在校或工作中曾获得荣誉', '在校或在工作', '荣誉', '职务', 'position', '资格证书', 'qualification', '标签', 'tags']);
         const extraTags = Object.entries(t.extra_fields || {})
             .filter(([k, v]) => !known.has(k) && isFilled(v))
             .map(([k, v]) => `<span class="detail-cyber-extra-tag">${k}：${display(v)}</span>`)
@@ -202,8 +202,7 @@ function renderDetail(t) {
         `;
     }
 
-    // 标签
-    renderTagsSection(t);
+    // 已按需求移除“标签”字段展示
 }
 
 function pickExtra(t, keys) {
@@ -362,7 +361,6 @@ function showEditModal() {
         { key: 'address', label: '家庭住址' },
         { key: 'email', label: '邮箱' },
         { key: 'title', label: '职称' },
-        { key: 'position', label: '职务' },
         { key: 'subject', label: '任教学科' },
         { key: 'hire_date', label: '入职日期' },
         { key: 'employee_id', label: '工号' },
