@@ -8,11 +8,14 @@ import secrets
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Query, Depends, UploadFile, File, Form
 from typing import Optional, Any
-from backend.database import get_connection
+from sqlalchemy import and_, asc, desc, func, or_, select
+from sqlalchemy.orm import Session
+from backend.database import get_connection, get_db
 from backend.models import (
     TeacherCreate, TeacherUpdate, TeacherResponse,
     TeacherListResponse, ChangeLogResponse
 )
+from backend.models.orm import Teacher, TeacherExtraField, User
 from backend.config import BUILTIN_FIELDS, FIELD_MAPPING, UPLOAD_DIR
 from backend.services.id_card_utils import calculate_age, extract_birth_date, validate_id_card
 from backend.services.auth_utils import get_current_user, require_admin
@@ -384,6 +387,64 @@ def row_to_teacher_response(row: dict, conn) -> TeacherResponse:
     )
 
 
+def orm_teacher_to_response(
+    teacher: Teacher,
+    account_username: Optional[str],
+    extra_fields: dict[str, str],
+) -> TeacherResponse:
+    """将 ORM Teacher 转换为 TeacherResponse。"""
+    tags = []
+    if teacher.tags:
+        try:
+            tags = json.loads(teacher.tags)
+        except (json.JSONDecodeError, TypeError):
+            tags = []
+
+    age = teacher.age
+    birth_date = teacher.birth_date
+    id_card = teacher.id_card
+    if id_card and validate_id_card(id_card):
+        derived_birth = extract_birth_date(id_card)
+        if derived_birth:
+            birth_date = derived_birth
+            computed_age = calculate_age(derived_birth)
+            if computed_age is not None:
+                age = computed_age
+    elif birth_date:
+        computed_age = calculate_age(birth_date)
+        if computed_age is not None:
+            age = computed_age
+
+    return TeacherResponse(
+        id=teacher.id,
+        account_username=account_username,
+        name=teacher.name,
+        gender=teacher.gender,
+        id_card=teacher.id_card,
+        phone=teacher.phone,
+        mobile=teacher.mobile,
+        short_phone=teacher.short_phone,
+        birth_date=birth_date,
+        age=age,
+        graduate_school=teacher.graduate_school,
+        education=teacher.education,
+        political_status=teacher.political_status,
+        ethnicity=teacher.ethnicity,
+        native_place=teacher.native_place,
+        address=teacher.address,
+        email=teacher.email,
+        title=teacher.title,
+        position=teacher.position,
+        subject=teacher.subject,
+        hire_date=teacher.hire_date,
+        employee_id=teacher.employee_id,
+        tags=tags,
+        extra_fields=extra_fields,
+        created_at=str(teacher.created_at) if teacher.created_at else None,
+        updated_at=str(teacher.updated_at) if teacher.updated_at else None,
+    )
+
+
 @router.get("/", response_model=TeacherListResponse)
 async def list_teachers(
     keyword: Optional[str] = Query(None, description="搜索关键词（姓名/电话模糊搜索）"),
@@ -408,183 +469,151 @@ async def list_teachers(
     sort_order: Optional[str] = Query("asc", description="排序方向: asc/desc"),
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页条数"),
-    user: dict = Depends(get_current_user)
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    """查询教师列表（分页 + 多条件筛选 + 排序）"""
-    conn = get_connection()
-    try:
-        conditions = []
-        params = []
+    """查询教师列表（分页 + 多条件筛选 + 排序，SQLAlchemy 版本）"""
+    conditions = []
 
-        extra_field_aliases = {
-            "original_unit": ["原单位", "原工作单位", "original_unit"],
-            "public_service_time": ["参公时间", "参公日期", "public_service_time"],
-            "car_plate": ["车牌号码", "车牌号", "车牌", "car_plate", "car_plate_number"],
-        }
+    def like(col, value: str):
+        return col.ilike(f"%{value}%")
 
-        def add_extra_like(aliases: list[str], value: str, name_like: str | None = None):
-            placeholders = ", ".join("?" * len(aliases)) if aliases else ""
-            name_conditions = []
-            if aliases:
-                name_conditions.append(f"tef.field_name IN ({placeholders})")
-            if name_like:
-                name_conditions.append("tef.field_name LIKE ?")
-            name_clause = " OR ".join(name_conditions) if name_conditions else "1=1"
-            conditions.append(
-                f"EXISTS (SELECT 1 FROM teacher_extra_fields tef "
-                f"WHERE tef.teacher_id = t.id AND ({name_clause}) "
-                f"AND lower(tef.field_value) LIKE lower(?))"
+    def add_extra_like(aliases: list[str], value: str, name_like: str | None = None):
+        name_filters = []
+        if aliases:
+            name_filters.append(TeacherExtraField.field_name.in_(aliases))
+        if name_like:
+            name_filters.append(TeacherExtraField.field_name.like(name_like))
+        name_cond = or_(*name_filters) if name_filters else None
+        field_value_cond = TeacherExtraField.field_value.ilike(f"%{value}%")
+        subq_cond = and_(
+            TeacherExtraField.teacher_id == Teacher.id,
+            field_value_cond,
+            name_cond if name_cond is not None else True,
+        )
+        conditions.append(select(TeacherExtraField.id).where(subq_cond).exists())
+
+    if keyword:
+        conditions.append(
+            or_(
+                like(Teacher.name, keyword),
+                like(Teacher.phone, keyword),
+                like(Teacher.mobile, keyword),
+                like(Teacher.id_card, keyword),
             )
-            if aliases:
-                params.extend(aliases)
-            if name_like:
-                params.append(name_like)
-            params.append(f"%{value}%")
-
-        if keyword:
-            conditions.append("(name LIKE ? OR phone LIKE ? OR mobile LIKE ? OR id_card LIKE ?)")
-            kw = f"%{keyword}%"
-            params.extend([kw, kw, kw, kw])
-
-        if gender:
-            conditions.append("gender LIKE ?")
-            params.append(f"%{gender}%")
-
-        if phone:
-            conditions.append("(phone LIKE ? OR mobile LIKE ? OR short_phone LIKE ?)")
-            ph = f"%{phone}%"
-            params.extend([ph, ph, ph])
-
-        if birth_date:
-            conditions.append("birth_date LIKE ?")
-            params.append(f"%{birth_date}%")
-
-        if political_status:
-            conditions.append("political_status = ?")
-            params.append(political_status)
-
-        if education:
-            conditions.append("education LIKE ?")
-            params.append(f"%{education}%")
-
-        if title:
-            conditions.append("title LIKE ?")
-            params.append(f"%{title}%")
-
-        if graduate_school:
-            conditions.append("graduate_school LIKE ?")
-            params.append(f"%{graduate_school}%")
-
-        if ethnicity:
-            conditions.append("ethnicity LIKE ?")
-            params.append(f"%{ethnicity}%")
-
-        if address:
-            conditions.append("address LIKE ?")
-            params.append(f"%{address}%")
-
-        # 年龄筛选：优先按出生日期/身份证号动态计算，回退到存储的 age
-        derived_birth = (
-            "CASE "
-            "WHEN id_card IS NOT NULL AND length(id_card)=18 THEN "
-            "substr(id_card,7,4)||'-'||substr(id_card,11,2)||'-'||substr(id_card,13,2) "
-            "WHEN id_card IS NOT NULL AND length(id_card)=15 THEN "
-            "'19'||substr(id_card,7,2)||'-'||substr(id_card,9,2)||'-'||substr(id_card,11,2) "
-            "END"
         )
-        normalized_birth = (
-            "CASE "
-            "WHEN birth_date IS NOT NULL AND length(trim(birth_date)) >= 10 THEN "
-            "replace(replace(substr(trim(birth_date),1,10), '/', '-'), '.', '-') "
-            "WHEN birth_date IS NOT NULL AND length(trim(birth_date)) = 8 "
-            "AND trim(birth_date) GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' THEN "
-            "substr(trim(birth_date),1,4)||'-'||substr(trim(birth_date),5,2)||'-'||substr(trim(birth_date),7,2) "
-            "END"
+
+    if gender:
+        conditions.append(like(Teacher.gender, gender))
+
+    if phone:
+        conditions.append(
+            or_(
+                like(Teacher.phone, phone),
+                like(Teacher.mobile, phone),
+                like(Teacher.short_phone, phone),
+            )
         )
-        birth_expr = f"COALESCE({normalized_birth}, {derived_birth})"
-        computed_age = (
-            f"(CAST(strftime('%Y','now') AS INTEGER) - CAST(strftime('%Y', {birth_expr}) AS INTEGER) - "
-            f"(strftime('%m-%d','now') < strftime('%m-%d', {birth_expr})))"
+
+    if birth_date:
+        conditions.append(like(Teacher.birth_date, birth_date))
+    if political_status:
+        conditions.append(Teacher.political_status == political_status)
+    if education:
+        conditions.append(like(Teacher.education, education))
+    if title:
+        conditions.append(like(Teacher.title, title))
+    if graduate_school:
+        conditions.append(like(Teacher.graduate_school, graduate_school))
+    if ethnicity:
+        conditions.append(like(Teacher.ethnicity, ethnicity))
+    if address:
+        conditions.append(like(Teacher.address, address))
+    if tag:
+        conditions.append(Teacher.tags.like(f'%"{tag}"%'))
+    if subject:
+        conditions.append(like(Teacher.subject, subject))
+    if hire_date:
+        conditions.append(like(Teacher.hire_date, hire_date))
+
+    if min_age is not None:
+        conditions.append(Teacher.age >= min_age)
+    if max_age is not None:
+        conditions.append(Teacher.age <= max_age)
+
+    if original_unit:
+        add_extra_like(["原单位", "原工作单位", "original_unit"], original_unit)
+    if public_service_time:
+        add_extra_like(["参公时间", "参公日期", "public_service_time"], public_service_time)
+    if car_plate:
+        add_extra_like(
+            ["车牌号码", "车牌号", "车牌", "car_plate", "car_plate_number"],
+            car_plate,
+            "%车牌%",
         )
-        age_expr = f"COALESCE({computed_age}, age)"
 
-        if min_age is not None:
-            conditions.append(f"{age_expr} >= ?")
-            params.append(min_age)
+    if user.get("role") == "teacher":
+        teacher_id = user.get("teacher_id")
+        if not teacher_id:
+            raise HTTPException(status_code=403, detail="账号未绑定教师")
+        conditions.append(Teacher.id == teacher_id)
 
-        if max_age is not None:
-            conditions.append(f"{age_expr} <= ?")
-            params.append(max_age)
+    stmt = (
+        select(Teacher, User.username.label("account_username"))
+        .outerjoin(User, User.teacher_id == Teacher.id)
+        .where(*conditions)
+    )
 
-        if tag:
-            conditions.append("tags LIKE ?")
-            params.append(f'%"{tag}"%')
+    sort_map = {
+        "id": Teacher.id,
+        "name": Teacher.name,
+        "age": Teacher.age,
+        "gender": Teacher.gender,
+        "education": Teacher.education,
+        "political_status": Teacher.political_status,
+        "hire_date": Teacher.hire_date,
+        "subject": Teacher.subject,
+        "created_at": Teacher.created_at,
+    }
+    sort_col = sort_map.get(sort_by or "", Teacher.id)
+    order_expr = desc(sort_col) if (sort_order or "").lower() == "desc" else asc(sort_col)
 
-        if subject:
-            conditions.append("subject LIKE ?")
-            params.append(f"%{subject}%")
+    total_stmt = select(func.count()).select_from(stmt.order_by(None).subquery())
+    total = int(db.execute(total_stmt).scalar_one())
 
-        if hire_date:
-            conditions.append("hire_date LIKE ?")
-            params.append(f"%{hire_date}%")
+    offset = (page - 1) * page_size
+    rows = db.execute(stmt.order_by(order_expr).offset(offset).limit(page_size)).all()
 
-        if original_unit:
-            add_extra_like(extra_field_aliases["original_unit"], original_unit)
+    teacher_ids = [row[0].id for row in rows]
+    extras_map: dict[int, dict[str, str]] = {}
+    if teacher_ids:
+        extra_rows = db.execute(
+            select(
+                TeacherExtraField.teacher_id,
+                TeacherExtraField.field_name,
+                TeacherExtraField.field_value,
+            ).where(TeacherExtraField.teacher_id.in_(teacher_ids))
+        ).all()
+        for teacher_id, field_name, field_value in extra_rows:
+            extras_map.setdefault(teacher_id, {})[field_name] = field_value
 
-        if public_service_time:
-            add_extra_like(extra_field_aliases["public_service_time"], public_service_time)
-
-        if car_plate:
-            add_extra_like(extra_field_aliases["car_plate"], car_plate, "%车牌%")
-
-        # 教师账号只能查看自己的信息
-        if user.get("role") == "teacher":
-            teacher_id = user.get("teacher_id")
-            if not teacher_id:
-                raise HTTPException(status_code=403, detail="账号未绑定教师")
-            conditions.append("t.id = ?")
-            params.append(teacher_id)
-
-        where_clause = " AND ".join(conditions) if conditions else "1=1"
-
-        # 排序
-        allowed_sort_fields = {"name", "age", "gender", "education", "political_status", "hire_date", "subject", "id", "created_at"}
-        order_dir = "DESC" if sort_order and sort_order.lower() == "desc" else "ASC"
-        if sort_by and sort_by in allowed_sort_fields:
-            # NULL 值排到最后
-            order_field = f"t.{sort_by}"
-            order_clause = f"{order_field} IS NULL, {order_field} {order_dir}"
-        else:
-            order_clause = "t.id ASC"
-
-        # 统计总数
-        total = conn.execute(
-            f"SELECT COUNT(*) FROM teachers t LEFT JOIN users u ON u.teacher_id = t.id WHERE {where_clause}",
-            params
-        ).fetchone()[0]
-
-        # 分页查询
-        offset = (page - 1) * page_size
-        rows = conn.execute(
-            f"SELECT t.*, u.username as account_username "
-            f"FROM teachers t LEFT JOIN users u ON u.teacher_id = t.id "
-            f"WHERE {where_clause} ORDER BY {order_clause} LIMIT ? OFFSET ?",
-            params + [page_size, offset]
-        ).fetchall()
-
-        teachers = [row_to_teacher_response(dict(row), conn) for row in rows]
-
-        total_pages = (total + page_size - 1) // page_size
-
-        return TeacherListResponse(
-            total=total,
-            page=page,
-            page_size=page_size,
-            total_pages=total_pages,
-            data=teachers
+    teachers = [
+        orm_teacher_to_response(
+            teacher=t,
+            account_username=account_username,
+            extra_fields=extras_map.get(t.id, {}),
         )
-    finally:
-        conn.close()
+        for t, account_username in rows
+    ]
+
+    total_pages = (total + page_size - 1) // page_size
+    return TeacherListResponse(
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        data=teachers,
+    )
 
 
 @router.get("/{teacher_id}", response_model=TeacherResponse)

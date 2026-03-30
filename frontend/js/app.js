@@ -18,40 +18,43 @@ function escapeHTML(str) {
         .replace(/'/g, '&#039;');
 }
 
-/**
- * 封装 fetch 请求
- */
-async function api(url, options = {}) {
-    try {
-        const token = localStorage.getItem('auth_token');
-        const resp = await fetch(API_BASE + url, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-                ...options.headers
-            },
-            ...options
-        });
-        if (resp.status === 401) {
-            localStorage.removeItem('auth_token');
-            cachedUser = null;
-            if (!window.location.pathname.startsWith('/login')) {
-                window.location.href = '/login';
+function createApiClient({ base = API_BASE } = {}) {
+    return async function request(url, options = {}) {
+        try {
+            const token = localStorage.getItem('auth_token');
+            const resp = await fetch(base + url, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                    ...options.headers
+                },
+                ...options
+            });
+            if (resp.status === 401) {
+                localStorage.removeItem('auth_token');
+                cachedUser = null;
+                if (!window.location.pathname.startsWith('/login')) {
+                    window.location.href = '/login';
+                }
+                throw new Error('未登录');
             }
-            throw new Error('未登录');
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({ detail: '请求失败' }));
+                throw new Error(err.detail || `HTTP ${resp.status}`);
+            }
+            if (options.raw) return resp;
+            return await resp.json();
+        } catch (e) {
+            showToast(e.message, 'error');
+            throw e;
         }
-        if (!resp.ok) {
-            const err = await resp.json().catch(() => ({ detail: '请求失败' }));
-            throw new Error(err.detail || `HTTP ${resp.status}`);
-        }
-        // 如文件下载则直接返回 response
-        if (options.raw) return resp;
-        return await resp.json();
-    } catch (e) {
-        showToast(e.message, 'error');
-        throw e;
-    }
+    };
 }
+
+/**
+ * 默认 API 客户端（兼容旧代码）
+ */
+const api = createApiClient();
 
 /**
  * Toast 通知
