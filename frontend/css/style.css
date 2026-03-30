@@ -1691,6 +1691,132 @@ select.form-control {
     font-size: 13px;
 }
 
+/* ===================== Assessment ===================== */
+.assessment-list {
+    margin: 0;
+    padding-left: 20px;
+    color: var(--text-secondary);
+    line-height: 1.8;
+}
+
+.assessment-question {
+    font-size: 24px;
+    line-height: 1.6;
+    color: var(--text-primary);
+}
+
+.assessment-options {
+    display: grid;
+    gap: 10px;
+}
+
+.assessment-options label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: var(--transition);
+    background: #fff;
+}
+
+.assessment-options label:hover {
+    border-color: #bfd0ff;
+    background: #f8fbff;
+}
+
+.assessment-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.assessment-radar {
+    width: 100%;
+    height: 440px;
+}
+
+.assessment-score-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+}
+
+.assessment-score-card {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: #fff;
+    padding: 14px;
+}
+
+.assessment-score-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+}
+
+.assessment-score-head span {
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.assessment-score-head strong {
+    color: var(--text-primary);
+    font-size: 20px;
+}
+
+.assessment-interpret,
+.assessment-suggestion {
+    margin: 10px 0 0;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+}
+
+.assessment-disclaimer {
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px dashed #d4deeb;
+    background: #f8fbff;
+    color: #4b5c74;
+    font-size: 12px;
+}
+
+.assessment-answer-list {
+    margin-top: 8px;
+    max-height: 280px;
+    overflow: auto;
+    display: grid;
+    gap: 6px;
+}
+
+.assessment-answer-item {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: #f9fbff;
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.assessment-answer-q {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.assessment-answer-v {
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
 /* ===================== Loading ===================== */
 .loading {
     display: flex;

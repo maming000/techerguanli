@@ -44,8 +44,6 @@ function renderHero(p) {
                 <span class="m-cyber-avatar-core"></span>
             </div>
             <h2 class="m-cyber-name">${esc(p.name || '教师详情')}</h2>
-            <p class="m-cyber-sub">${esc(p.role || '教师')}</p>
-            <p class="m-cyber-id">${p.staff_id ? `Staff ID: ${esc(p.staff_id)}` : 'Staff ID: -'}</p>
             <div class="m-cyber-nameplate"></div>
         </section>
     `;
@@ -107,12 +105,13 @@ function renderSectionCard(profile, section, no, schema) {
 }
 
 function renderBottomActions(id) {
+    const canAssess = mCurrentUser && (mCurrentUser.role === 'teacher' || mCurrentUser.role === 'admin');
     return `
         <div class="m-cyber-actions-wrap">
             <div class="m-cyber-divider"></div>
             <div class="m-cyber-actions">
                 <button class="m-cyber-btn m-cyber-btn-primary" onclick="openMobileEditModal()">编辑资料</button>
-                <button class="m-cyber-btn" onclick="mShowToast('功能开发中', 'info')">教学日历</button>
+                <button class="m-cyber-btn" onclick="${canAssess ? "window.location.href='/assessment/start'" : "mShowToast('当前账号无测评权限', 'warning')"}">人格测评</button>
                 <button class="m-cyber-btn" onclick="mShowToast('更多功能开发中', 'info')">更多操作</button>
             </div>
         </div>

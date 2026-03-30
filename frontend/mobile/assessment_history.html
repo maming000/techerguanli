@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>人格测评-历史（移动端）</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+</head>
+<body class="m-body">
+<div class="m-shell">
+    <header class="m-topbar">
+        <h1>测评历史</h1>
+        <button class="btn btn-outline btn-sm" onclick="window.location.href='/m/assessment/start'">返回</button>
+    </header>
+    <main class="m-content">
+        <div id="assessment-history-wrap">
+            <div class="card">
+                <div class="card-header"><h2>我的历史记录</h2></div>
+                <div class="card-body">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>O</th>
+                                <th>C</th>
+                                <th>E</th>
+                                <th>A</th>
+                                <th>N</th>
+                                <th>均值</th>
+                            </tr>
+                            </thead>
+                            <tbody id="assessment-history-tbody">
+                            <tr><td colspan="7" class="loading"><div class="spinner"></div> 加载中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="assessment-admin-wrap" style="display:none;">
+            <div class="stats-grid mb-16">
+                <div class="stat-card">
+                    <div class="stat-icon blue">🧪</div>
+                    <div class="stat-info">
+                        <h3 id="assessment-admin-total">0</h3>
+                        <p>测评样本</p>
+                    </div>
+                </div>
+            </div>
+            <div id="assessment-admin-avg" class="assessment-score-grid mb-16"></div>
+            <div class="card">
+                <div class="card-header"><h2>分布统计（汇总）</h2></div>
+                <div class="card-body"><div id="assessment-admin-dist" class="assessment-radar"></div></div>
+            </div>
+            <div class="card mt-16">
+                <div class="card-header"><h2>测试明细</h2></div>
+                <div class="card-body">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>账号</th><th>用户ID</th><th>时间</th><th>IP</th><th>分数</th><th>答题</th>
+                            </tr>
+                            </thead>
+                            <tbody id="assessment-admin-records-tbody">
+                            <tr><td colspan="6" class="loading"><div class="spinner"></div> 加载中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <nav class="m-tabbar">
+        <a href="/m">列表</a>
+        <a href="/m/stats">统计</a>
+        <a href="/m/assessment/start" class="active">测评</a>
+    </nav>
+</div>
+<script src="/js/mobile-common.js"></script>
+<script src="/js/assessment/mobile-bridge.js"></script>
+<script src="/js/assessment/common.js"></script>
+<script src="/js/assessment/history.js"></script>
+</body>
+</html>

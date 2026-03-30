@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from backend.database import init_database
 from backend.config import FRONTEND_DIR, UPLOAD_DIR
-from backend.routers import upload, teachers, stats, export, auth, users
+from backend.routers import upload, teachers, stats, export, auth, users, assessment
 
 # 初始化数据库
 init_database()
@@ -25,6 +25,7 @@ app.include_router(stats.router)
 app.include_router(export.router)
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(assessment.router)
 
 # 挂载前端静态文件
 app.mount("/css", StaticFiles(directory=f"{FRONTEND_DIR}/css"), name="css")
@@ -96,6 +97,54 @@ async def mobile_stats_page():
 async def mobile_login_page():
     """移动端登录页"""
     return FileResponse(f"{FRONTEND_DIR}/mobile/login.html")
+
+
+@app.get("/m/assessment/start")
+async def mobile_assessment_start_page():
+    """移动端人格测评-开始页"""
+    return FileResponse(f"{FRONTEND_DIR}/mobile/assessment_start.html")
+
+
+@app.get("/m/assessment/test")
+async def mobile_assessment_test_page():
+    """移动端人格测评-测评页"""
+    return FileResponse(f"{FRONTEND_DIR}/mobile/assessment_test.html")
+
+
+@app.get("/m/assessment/result")
+async def mobile_assessment_result_page():
+    """移动端人格测评-结果页"""
+    return FileResponse(f"{FRONTEND_DIR}/mobile/assessment_result.html")
+
+
+@app.get("/m/assessment/history")
+async def mobile_assessment_history_page():
+    """移动端人格测评-历史页"""
+    return FileResponse(f"{FRONTEND_DIR}/mobile/assessment_history.html")
+
+
+@app.get("/assessment/start")
+async def assessment_start_page():
+    """人格测评-开始页"""
+    return FileResponse(f"{FRONTEND_DIR}/assessment_start.html")
+
+
+@app.get("/assessment/test")
+async def assessment_test_page():
+    """人格测评-测评页"""
+    return FileResponse(f"{FRONTEND_DIR}/assessment_test.html")
+
+
+@app.get("/assessment/result")
+async def assessment_result_page():
+    """人格测评-结果页"""
+    return FileResponse(f"{FRONTEND_DIR}/assessment_result.html")
+
+
+@app.get("/assessment/history")
+async def assessment_history_page():
+    """人格测评-历史页"""
+    return FileResponse(f"{FRONTEND_DIR}/assessment_history.html")
 
 
 if __name__ == "__main__":

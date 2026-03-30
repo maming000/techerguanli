@@ -146,7 +146,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function redirectToStandaloneMobile() {
-    // 保持桌面端路由稳定：不再做自动移动端重定向
+    if (!shouldUseStandaloneMobile()) return false;
+    const path = window.location.pathname;
+    // 仅做精确路由兜底：防止手机打开桌面详情页
+    if (path === '/detail') {
+        window.location.replace(`/m/detail${window.location.search || ''}${window.location.hash || ''}`);
+        return true;
+    }
     return false;
 }
 
@@ -238,7 +244,10 @@ async function initAuthUI() {
 
         // 教师账号不展示管理员首页，直接进入个人详情
         if (window.location.pathname === '/' && user.teacher_id) {
-            window.location.replace(`/detail?id=${user.teacher_id}`);
+            const target = shouldUseStandaloneMobile()
+                ? `/m/detail?id=${user.teacher_id}`
+                : `/detail?id=${user.teacher_id}`;
+            window.location.replace(target);
         }
     }
 
@@ -249,6 +258,9 @@ async function initAuthUI() {
         if (bulkBtn) bulkBtn.style.display = 'none';
         const batchBar = document.getElementById('batch-bar');
         if (batchBar) batchBar.style.display = 'none';
+        document.querySelectorAll('.nav-item[href="/assessment/start"], .mobile-nav-link[data-mobile-route="/assessment/start"]').forEach((el) => {
+            el.style.display = 'none';
+        });
     }
 
     // 追加退出按钮

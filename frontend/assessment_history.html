@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人格测评 - 历史记录</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/assessment/route-guard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1><span class="icon">🎓</span> 教师管理</h1>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/" class="nav-item"><span class="nav-icon">📋</span> 教师列表</a>
+            <a href="/upload" class="nav-item"><span class="nav-icon">📤</span> 数据导入</a>
+            <a href="/stats" class="nav-item"><span class="nav-icon">📊</span> 统计分析</a>
+            <a href="/assessment/start" class="nav-item active"><span class="nav-icon">🧠</span> 人格测评</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1 class="page-title">人格测评历史</h1>
+            <div class="header-actions">
+                <button class="btn btn-outline" onclick="window.location.href='/assessment/start'">返回模块首页</button>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <div id="assessment-history-wrap">
+                <div class="card">
+                    <div class="card-header"><h2>我的历史记录</h2></div>
+                    <div class="card-body">
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>开放性</th>
+                                    <th>尽责性</th>
+                                    <th>外向性</th>
+                                    <th>宜人性</th>
+                                    <th>情绪性</th>
+                                    <th>综合均值</th>
+                                </tr>
+                                </thead>
+                                <tbody id="assessment-history-tbody">
+                                <tr><td colspan="7" class="loading"><div class="spinner"></div> 加载中...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="assessment-admin-wrap" style="display:none;">
+                <div class="stats-grid mb-24">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">🧪</div>
+                        <div class="stat-info">
+                            <h3 id="assessment-admin-total">0</h3>
+                            <p>测评总样本</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="assessment-admin-avg" class="assessment-score-grid mb-24"></div>
+                <div class="card">
+                    <div class="card-header"><h2>分布统计（仅汇总）</h2></div>
+                    <div class="card-body">
+                        <div id="assessment-admin-dist" class="assessment-radar"></div>
+                    </div>
+                </div>
+                <div class="card mt-24">
+                    <div class="card-header"><h2>测试明细（管理员）</h2></div>
+                    <div class="card-body">
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>账号</th>
+                                    <th>用户ID</th>
+                                    <th>测试时间</th>
+                                    <th>IP</th>
+                                    <th>五维分数</th>
+                                    <th>答题详情</th>
+                                </tr>
+                                </thead>
+                                <tbody id="assessment-admin-records-tbody">
+                                <tr><td colspan="6" class="loading"><div class="spinner"></div> 加载中...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="assessment-disclaimer mt-24">
+                This assessment is for reference only and not a clinical diagnosis.
+            </div>
+        </div>
+    </main>
+</div>
+<script src="/js/app.js"></script>
+<script src="/js/assessment/common.js"></script>
+<script src="/js/assessment/history.js"></script>
+</body>
+</html>

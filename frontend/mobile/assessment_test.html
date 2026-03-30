@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>人格测评-测试（移动端）</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="m-body">
+<div class="m-shell">
+    <header class="m-topbar">
+        <h1>人格测评</h1>
+        <button class="btn btn-outline btn-sm" onclick="window.location.href='/m/assessment/start'">返回</button>
+    </header>
+    <main class="m-content" id="assessment-test-wrap">
+        <div class="card">
+            <div class="card-body">
+                <div class="flex items-center" style="justify-content: space-between;">
+                    <span id="assessment-question-no" class="text-muted">Q1</span>
+                    <span id="assessment-progress-label" class="text-muted">第 1 / 30 题</span>
+                </div>
+                <div class="progress-bar mt-8">
+                    <div class="progress-fill" id="assessment-progress-fill" style="width:3%"></div>
+                </div>
+                <h2 id="assessment-question-text" class="assessment-question mt-24">加载中...</h2>
+                <div class="assessment-options mt-24">
+                    <label><input type="radio" name="assessment-answer" value="1"> 1 - 非常不同意</label>
+                    <label><input type="radio" name="assessment-answer" value="2"> 2 - 比较不同意</label>
+                    <label><input type="radio" name="assessment-answer" value="3"> 3 - 一般</label>
+                    <label><input type="radio" name="assessment-answer" value="4"> 4 - 比较同意</label>
+                    <label><input type="radio" name="assessment-answer" value="5"> 5 - 非常同意</label>
+                </div>
+                <div class="assessment-actions mt-24">
+                    <button id="btn-prev-question" class="btn btn-outline">上一题</button>
+                    <button id="btn-next-question" class="btn btn-primary">下一题</button>
+                </div>
+            </div>
+        </div>
+    </main>
+    <nav class="m-tabbar">
+        <a href="/m">列表</a>
+        <a href="/m/stats">统计</a>
+        <a href="/m/assessment/start" class="active">测评</a>
+    </nav>
+</div>
+<script src="/js/mobile-common.js"></script>
+<script src="/js/assessment/mobile-bridge.js"></script>
+<script src="/js/assessment/common.js"></script>
+<script src="/js/assessment/test.js"></script>
+</body>
+</html>

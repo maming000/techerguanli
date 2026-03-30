@@ -124,6 +124,37 @@ def init_database():
         )
     """)
 
+    # 人格测评记录（Big Five / IPIP-50）
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS personality_tests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            question_ids TEXT,
+            answers TEXT NOT NULL,
+            answer_items TEXT,
+            client_ip TEXT,
+            openness REAL NOT NULL,
+            conscientiousness REAL NOT NULL,
+            extraversion REAL NOT NULL,
+            agreeableness REAL NOT NULL,
+            neuroticism REAL NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    # 兼容历史版本（无新增列时自动补齐）
+    try:
+        cursor.execute("ALTER TABLE personality_tests ADD COLUMN question_ids TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute("ALTER TABLE personality_tests ADD COLUMN answer_items TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute("ALTER TABLE personality_tests ADD COLUMN client_ip TEXT")
+    except sqlite3.OperationalError:
+        pass
+
     # 教师改动审核请求
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS teacher_change_requests (
@@ -153,6 +184,9 @@ def init_database():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_change_requests_status ON teacher_change_requests(status)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_change_requests_teacher_id ON teacher_change_requests(teacher_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_login_rate_limits_blocked_until ON login_rate_limits(blocked_until_ts)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_personality_tests_user_id ON personality_tests(user_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_personality_tests_created_at ON personality_tests(created_at)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_personality_tests_client_ip ON personality_tests(client_ip)")
 
     # 初始化内置字段注册
     builtin_fields = [

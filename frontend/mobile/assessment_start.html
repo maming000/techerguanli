@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>人格测评-开始（移动端）</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="m-body">
+<div class="m-shell">
+    <header class="m-topbar">
+        <h1>人格测评</h1>
+        <button class="btn btn-outline btn-sm" onclick="window.location.href='/m'">返回</button>
+    </header>
+    <main class="m-content">
+        <div class="card">
+            <div class="card-header"><h2>测评说明</h2></div>
+            <div class="card-body">
+                <p class="mb-16">本模块采用 IPIP-50 题库，从五个维度做参考评估。</p>
+                <ul class="assessment-list">
+                    <li>每次测试30题，1-5分量表。</li>
+                    <li>耗时约6-10分钟。</li>
+                </ul>
+                <p id="assessment-start-role-hint" class="text-muted mt-16"></p>
+                <div class="mt-24">
+                    <button class="btn btn-primary" style="width:100%;" onclick="window.location.href='/m/assessment/test'">开始测评</button>
+                </div>
+                <div class="assessment-disclaimer mt-16">
+                    This assessment is for reference only and not a clinical diagnosis.
+                </div>
+            </div>
+        </div>
+    </main>
+    <nav class="m-tabbar">
+        <a href="/m">列表</a>
+        <a href="/m/stats">统计</a>
+        <a href="/m/assessment/start" class="active">测评</a>
+    </nav>
+</div>
+<script src="/js/mobile-common.js"></script>
+<script src="/js/assessment/mobile-bridge.js"></script>
+<script src="/js/assessment/common.js"></script>
+<script src="/js/assessment/start.js"></script>
+</body>
+</html>

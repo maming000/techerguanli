@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人格测评 - 结果</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/assessment/route-guard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1><span class="icon">🎓</span> 教师管理</h1>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/" class="nav-item"><span class="nav-icon">📋</span> 教师列表</a>
+            <a href="/upload" class="nav-item"><span class="nav-icon">📤</span> 数据导入</a>
+            <a href="/stats" class="nav-item"><span class="nav-icon">📊</span> 统计分析</a>
+            <a href="/assessment/start" class="nav-item active"><span class="nav-icon">🧠</span> 人格测评</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1 class="page-title">测评结果</h1>
+            <div class="header-actions">
+                <button class="btn btn-outline" onclick="window.location.href='/assessment/history'">查看历史</button>
+                <button class="btn btn-primary" onclick="window.location.href='/assessment/test'">再测一次</button>
+            </div>
+        </header>
+
+        <div class="content-area" id="assessment-result-wrap">
+            <div class="card mb-24">
+                <div class="card-header">
+                    <h2>结果雷达图</h2>
+                    <span class="text-muted">测评时间：<span id="assessment-result-time">-</span></span>
+                </div>
+                <div class="card-body">
+                    <div id="assessment-radar" class="assessment-radar"></div>
+                </div>
+            </div>
+
+            <div id="assessment-result-cards" class="assessment-score-grid"></div>
+
+            <div class="assessment-disclaimer mt-24">
+                This assessment is for reference only and not a clinical diagnosis.
+            </div>
+        </div>
+    </main>
+</div>
+<script src="/js/app.js"></script>
+<script src="/js/assessment/common.js"></script>
+<script src="/js/assessment/result.js"></script>
+</body>
+</html>

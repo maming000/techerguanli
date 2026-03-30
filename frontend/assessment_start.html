@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人格测评 - 开始</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/assessment/route-guard.js"></script>
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1><span class="icon">🎓</span> 教师管理</h1>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/" class="nav-item"><span class="nav-icon">📋</span> 教师列表</a>
+            <a href="/upload" class="nav-item"><span class="nav-icon">📤</span> 数据导入</a>
+            <a href="/stats" class="nav-item"><span class="nav-icon">📊</span> 统计分析</a>
+            <a href="/assessment/start" class="nav-item active"><span class="nav-icon">🧠</span> 人格测评</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1 class="page-title">人格测评（Big Five）</h1>
+            <div class="header-actions">
+                <button class="btn btn-outline" onclick="window.location.href='/assessment/history'">历史记录</button>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <div class="card">
+                <div class="card-header"><h2>测评说明</h2></div>
+                <div class="card-body">
+                    <p class="mb-16">本模块采用 IPIP-50 题库，用于从开放性、尽责性、外向性、宜人性、情绪性五个维度进行参考性评估。</p>
+                    <ul class="assessment-list">
+                        <li>共 50 题，每题 1-5 分。</li>
+                        <li>每次测评大约 6-10 分钟。</li>
+                    </ul>
+                    <p id="assessment-start-role-hint" class="text-muted mt-16"></p>
+                    <div class="mt-24">
+                        <button class="btn btn-primary btn-lg" onclick="window.location.href='/assessment/test'">开始测评</button>
+                    </div>
+                    <div class="assessment-disclaimer mt-16">
+                        This assessment is for reference only and not a clinical diagnosis.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<script src="/js/app.js"></script>
+<script src="/js/assessment/common.js"></script>
+<script src="/js/assessment/start.js"></script>
+</body>
+</html>
